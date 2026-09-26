@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     whisper_no_speech_prob: float = 0.4  # segments Whisper rates at or above this are dropped as noise
     piper_voice: str = "sv_SE-lisa-medium"
     piper_length_scale: float = 1.15  # slightly slower than the voice's default, for elderly listeners
+    browser_whisper_model: str = "tiny.en"
+    browser_piper_voice: str = "en_US-lessac-low"
     # Silence that ends a turn. Elderly speakers pause mid-sentence, so keep this generous.
     end_of_turn_silence_s: float = 1.2
     # Letting the user talk over the bot needs a headset or echo cancellation; with laptop

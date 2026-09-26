@@ -186,13 +186,17 @@ async def run_transport_checkin(
     transport: BaseTransport,
     *,
     handle_sigint: bool = True,
+    language: Language = Language.SV,
+    whisper_model: str | None = None,
+    piper_voice: str | None = None,
 ) -> None:
     settings = get_settings()
     preload_cuda_libraries()
     vad = VADProcessor(vad_analyzer=SileroVADAnalyzer(params=vad_params(settings)))
-    stt = _create_whisper_stt(settings)
+    stt = _create_whisper_stt(settings, language=language, model=whisper_model)
     tts = CalmPiperTTSService(
-        length_scale=settings.piper_length_scale, settings=PiperTTSService.Settings(voice=settings.piper_voice)
+        length_scale=settings.piper_length_scale,
+        settings=PiperTTSService.Settings(voice=piper_voice or settings.piper_voice),
     )
     checkin = CheckinProcessor(dialogue, silence_timeout_s=settings.no_answer_timeout_s, barge_in=settings.barge_in)
 
@@ -226,10 +230,12 @@ async def run_voice_checkin(dialogue: Dialogue) -> None:
     await run_transport_checkin(dialogue, transport)
 
 
-def _create_whisper_stt(settings):
+def _create_whisper_stt(settings, *, language: Language = Language.SV, model: str | None = None):
     """Use the configured GPU when available, then fall back to CPU on CUDA driver errors."""
     options = WhisperSTTService.Settings(
-        model=settings.whisper_model, language=Language.SV, no_speech_prob=settings.whisper_no_speech_prob
+        model=model or settings.whisper_model,
+        language=language,
+        no_speech_prob=settings.whisper_no_speech_prob,
     )
     try:
         return WhisperSTTService(

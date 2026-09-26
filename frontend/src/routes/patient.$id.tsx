@@ -9,10 +9,10 @@ import { useVoiceSummary } from "@/lib/voice-summary";
 export const Route = createFileRoute("/patient/$id")({
   head: () => ({
     meta: [
-      { title: "Patientöversikt — Pulsefold Clinical" },
+      { title: "Patient overview — Pulsefold Clinical" },
       {
         name: "description",
-        content: "Klinisk analys och vald akut livedata för patienten.",
+        content: "Clinical analysis and selected urgent live data for the patient.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -32,13 +32,13 @@ function PatientMissing() {
     <div className="grid min-h-screen place-items-center bg-mist px-6 text-center">
       <div>
         <h1 className="font-display text-2xl font-medium">
-          Patienten hittades inte
+          Patient not found
         </h1>
         <Link
           to="/worklist"
           className="mt-3 inline-block text-sm font-semibold text-sage-deep underline"
         >
-          Tillbaka till patientlistan
+          Back to the patient list
         </Link>
       </div>
     </div>
@@ -66,7 +66,7 @@ function PatientDetail() {
           to="/worklist"
           className="text-xs font-semibold text-ink/45 hover:text-ink"
         >
-          ← Patientlista
+          ← Patient list
         </Link>
 
         <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
@@ -75,7 +75,7 @@ function PatientDetail() {
               {patient.name}
             </h1>
             <p className="mt-1 text-sm text-ink/55">
-              {patient.age} år · {diagnoses.join(" · ")}
+              {patient.age} years · {diagnoses.join(" · ")}
             </p>
           </div>
           <span
@@ -89,7 +89,7 @@ function PatientDetail() {
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-sage" />
             <h2 className="text-xs font-semibold tracking-[0.16em] text-sage-deep uppercase">
-              Kundens mående
+              Patient wellbeing
             </h2>
           </div>
           <p className="mt-5 max-w-3xl font-display text-2xl font-medium leading-snug text-ink">
@@ -97,8 +97,8 @@ function PatientDetail() {
           </p>
           {voiceCheckin?.endedAt && (
             <p className="mt-3 text-xs font-semibold text-ink/40">
-              Senaste AI-incheckning{" "}
-              {new Intl.DateTimeFormat("sv-SE", {
+              Latest AI check-in{" "}
+              {new Intl.DateTimeFormat("en-GB", {
                 dateStyle: "medium",
                 timeStyle: "short",
               }).format(new Date(voiceCheckin.endedAt))}
@@ -123,22 +123,22 @@ function PatientDetail() {
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold tracking-[0.16em] text-risk-deep uppercase">
-                Akut livedata
+                Urgent live data
               </p>
               <h2 className="mt-1 font-display text-2xl font-medium">
-                Vald av ansvarig läkare
+                Selected by the responsible clinician
               </h2>
             </div>
             <label className="text-xs font-semibold text-ink/55">
-              Visa signal
+              Show signal
               <select
                 value={liveMetric}
                 onChange={(event) => setLiveMetric(event.target.value)}
                 className="ml-3 rounded-lg border border-ink/10 bg-white/70 px-3 py-2 text-sm font-medium text-ink outline-none focus:border-sage"
               >
-                <option value="none">Ingen livedata</option>
+                <option value="none">No live data</option>
                 <option value="heart-rate" disabled={!isArtur}>
-                  Puls {isArtur ? "· Garmin Venu 2" : "· ingen källa"}
+                  Heart rate {isArtur ? "· Garmin Venu 2" : "· no source"}
                 </option>
               </select>
             </label>
@@ -150,10 +150,10 @@ function PatientDetail() {
             <div className="grid min-h-52 place-items-center rounded-2xl border border-dashed border-ink/15 bg-white/30 px-6 text-center">
               <div>
                 <p className="font-display text-xl font-medium text-ink/65">
-                  Ingen akut signal vald
+                  No urgent signal selected
                 </p>
                 <p className="mt-1 text-sm text-ink/45">
-                  Välj en tillgänglig livedatakälla ovan.
+                  Select an available live data source above.
                 </p>
               </div>
             </div>

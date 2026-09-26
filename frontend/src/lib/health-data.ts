@@ -40,9 +40,9 @@ export type Patient = {
 };
 
 export const statusLabel: Record<Status, string> = {
-  stable: "Stabil",
-  watch: "Bevaka",
-  risk: "Hög risk",
+  stable: "Stable",
+  watch: "Monitor",
+  risk: "High risk",
 };
 
 export function latest(m: Metric): number {

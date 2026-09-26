@@ -14,14 +14,14 @@ type CallState =
   | "error";
 
 const stateCopy: Record<CallState, string> = {
-  idle: "Starta när du är redo",
-  connecting: "Ansluter mikrofonen…",
-  listening: "AI:n lyssnar",
-  "patient-speaking": "Du pratar",
-  "ai-speaking": "AI:n svarar",
-  summarizing: "AI:n sammanfattar samtalet…",
-  finished: "Sammanfattningen är klar",
-  error: "Samtalet kunde inte startas",
+  idle: "Start when you are ready",
+  connecting: "Connecting your microphone…",
+  listening: "The AI is listening",
+  "patient-speaking": "You are speaking",
+  "ai-speaking": "The AI is responding",
+  summarizing: "The AI is summarizing the conversation…",
+  finished: "Your summary is ready",
+  error: "The conversation could not be started",
 };
 
 export function VoiceCheckinCard({
@@ -106,8 +106,8 @@ export function VoiceCheckinCard({
             if (data.text.trim()) setLastReply(data.text.trim());
           },
           onDeviceError: () =>
-            fail("Tillåt mikrofonen i webbläsaren och försök igen."),
-          onError: () => fail("Voice-servern svarade med ett fel."),
+            fail("Allow microphone access in your browser and try again."),
+          onError: () => fail("The voice server returned an error."),
         },
       });
       clientRef.current = client;
@@ -123,7 +123,7 @@ export function VoiceCheckinCard({
       fail(
         cause instanceof Error
           ? cause.message
-          : "Kunde inte ansluta till voice-servern.",
+          : "Could not connect to the voice server.",
       );
       clientRef.current = null;
       if (client?.connected) await client.disconnect();
@@ -176,7 +176,7 @@ export function VoiceCheckinCard({
           { cache: "no-store" },
         );
         if (response.status === 404) continue;
-        if (!response.ok) throw new Error(`Voice-servern svarade ${response.status}`);
+        if (!response.ok) throw new Error(`The voice server returned ${response.status}`);
 
         const result = (await response.json()) as {
           ready: boolean;
@@ -188,7 +188,7 @@ export function VoiceCheckinCard({
         if (!result.ready) continue;
         if (!result.summary) {
           throw new Error(
-            result.error || "AI:n kunde inte skapa någon sammanfattning.",
+            result.error || "The AI could not create a summary.",
           );
         }
 
@@ -203,13 +203,13 @@ export function VoiceCheckinCard({
         }
         return;
       }
-      throw new Error("Sammanfattningen tog för lång tid. Försök igen.");
+      throw new Error("The summary took too long. Please try again.");
     } catch (cause) {
       if (mountedRef.current) {
         setError(
           cause instanceof Error
             ? cause.message
-            : "Kunde inte hämta AI-sammanfattningen.",
+            : "Could not retrieve the AI summary.",
         );
         setState("error");
       }
@@ -228,15 +228,15 @@ export function VoiceCheckinCard({
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
           <p className="text-xs font-semibold tracking-[0.16em] text-sage-deep uppercase">
-            Daglig incheckning
+            Daily check-in
           </p>
           <h2 className="mt-1 font-display text-2xl font-medium text-ink">
-            Prata med din AI
+            Talk to your AI
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/60">
-            Berätta hur du mår. Efter samtalet skriver AI:n en kort
-            sammanfattning som visas under Kundens mående. Den sparas bara i
-            den här webbläsaren.
+            Tell us how you are feeling. After the conversation, the AI writes
+            a short summary shown under Patient wellbeing. It is saved only in
+            this browser.
           </p>
         </div>
         <button
@@ -255,10 +255,10 @@ export function VoiceCheckinCard({
             <Mic className="size-4" />
           )}
           {state === "connecting"
-            ? "Ansluter…"
+            ? "Connecting…"
             : active
-              ? "Avsluta samtalet"
-              : "Starta samtal"}
+              ? "End conversation"
+              : "Start conversation"}
         </button>
       </div>
 
@@ -273,13 +273,13 @@ export function VoiceCheckinCard({
         <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-xl bg-white/40 p-4">
             <p className="text-[10px] font-semibold tracking-wider text-ink/40 uppercase">
-              Senast uppfattat
+              Last heard
             </p>
             <p className="mt-1 text-ink/70">{lastHeard || "—"}</p>
           </div>
           <div className="rounded-xl bg-white/40 p-4">
             <p className="text-[10px] font-semibold tracking-wider text-ink/40 uppercase">
-              AI:n
+              AI
             </p>
             <p className="mt-1 text-ink/70">{lastReply || "—"}</p>
           </div>
@@ -294,7 +294,7 @@ export function VoiceCheckinCard({
           onClick={() => void playBotAudio()}
           className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
         >
-          Slå på AI-ljud
+          Enable AI audio
         </button>
       )}
     </section>

@@ -100,7 +100,7 @@ function Worklist() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="font-display text-lg font-semibold text-ink">{p.name}</span>
-                    <p className="mt-0.5 text-xs text-ink/50">{p.age} år</p>
+                    <p className="mt-0.5 text-xs text-ink/50">{p.age} years</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${t.badge}`}
@@ -110,7 +110,7 @@ function Worklist() {
                 </div>
                 <div className="mt-5 border-t border-ink/10 pt-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-ink/40 uppercase">
-                    Diagnoser
+                    Diagnoses
                   </p>
                   <p className="mt-1 text-sm font-medium text-ink/75">
                     {(p.diagnoses ?? [p.condition]).join(" · ")}

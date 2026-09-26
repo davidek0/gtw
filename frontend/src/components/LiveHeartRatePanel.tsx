@@ -46,7 +46,7 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
       } catch (cause) {
         if (active) {
           setError(
-            cause instanceof Error ? cause.message : "Kunde inte läsa livepuls",
+            cause instanceof Error ? cause.message : "Could not read live heart rate",
           );
           setNow(Date.now());
         }
@@ -100,28 +100,28 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
 
   const presentation = {
     offline: {
-      label: "Ingen färsk signal",
+      label: "No recent signal",
       panel: "border-ink/10 bg-white/55",
       text: "text-ink/45",
       dot: "bg-ink/25",
       chart: "text-ink/30",
     },
     ok: {
-      label: "Inom vald gräns",
+      label: "Within selected limit",
       panel: "border-sage/30 bg-sage/10",
       text: "text-sage-deep",
       dot: "bg-sage",
       chart: "text-sage-deep",
     },
     watch: {
-      label: "Förhöjd puls",
+      label: "Elevated heart rate",
       panel: "border-amber/40 bg-amber/12",
       text: "text-amber-deep",
       dot: "bg-amber",
       chart: "text-amber-deep",
     },
     danger: {
-      label: "Akut varning",
+      label: "Urgent warning",
       panel: "border-risk/40 bg-risk/10",
       text: "text-risk-deep",
       dot: "bg-risk animate-pulse",
@@ -156,10 +156,10 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
           </div>
           <p className="mt-2 text-xs text-ink/50">
             {isLive
-              ? `Live · senaste värde för ${ageSeconds} sek sedan`
+              ? `Live · latest reading ${ageSeconds} seconds ago`
               : latest
-                ? `Senaste värde för ${ageSeconds} sek sedan · starta Garmin-monitorn`
-                : error || "Väntar på första Garmin-värdet"}
+                ? `Latest reading ${ageSeconds} seconds ago · start the Garmin monitor`
+                : error || "Waiting for the first Garmin reading"}
           </p>
         </div>
 
@@ -168,20 +168,20 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
             <span className="block font-display text-xl font-semibold text-amber-deep">
               {warningThreshold}
             </span>
-            <span className="text-ink/45">förhöjd</span>
+            <span className="text-ink/45">elevated</span>
           </div>
           <div className="rounded-xl bg-white/55 px-4 py-3 ring-1 ring-black/5">
             <span className="block font-display text-xl font-semibold text-risk-deep">
               {dangerThreshold}
             </span>
-            <span className="text-ink/45">akut gräns</span>
+            <span className="text-ink/45">urgent limit</span>
           </div>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-xl bg-white/45 px-4 py-3 ring-1 ring-black/5">
         <label className="text-xs font-semibold text-ink/60">
-          Läkarens akuta pulsgräns
+          Clinician's urgent heart-rate limit
           <span className="mt-1 flex items-center gap-2">
             <input
               type="number"
@@ -197,21 +197,21 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
                 if (event.key === "Enter") saveThreshold();
               }}
               className="w-24 rounded-lg border border-ink/15 bg-white/80 px-3 py-2 text-base font-semibold text-ink outline-none focus:border-risk"
-              aria-label="Akut pulsgräns"
+              aria-label="Urgent heart-rate limit"
             />
             <span className="text-xs font-medium text-ink/45">bpm</span>
           </span>
         </label>
         <div className="flex items-center gap-3">
           {thresholdSaved && (
-            <span className="text-xs font-semibold text-sage-deep">Sparad</span>
+            <span className="text-xs font-semibold text-sage-deep">Saved</span>
           )}
           <button
             type="button"
             onClick={saveThreshold}
             className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-primary-foreground"
           >
-            Spara gräns
+            Save limit
           </button>
         </div>
       </div>
@@ -226,15 +226,15 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
           />
         ) : (
           <div className="grid h-full place-items-center text-xs text-ink/35">
-            Pulskurvan visas när nya värden kommer in
+            The heart-rate chart will appear when new readings arrive
           </div>
         )}
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-ink/50">
-        Förhöjd nivå visas 20 bpm under den valda akutgränsen. Demoindikering –
-        inte ett medicintekniskt larm. Bedöm puls tillsammans med symtom,
-        aktivitet, ordinationer och klinisk kontext.
+        The elevated level is shown 20 bpm below the selected urgent limit.
+        Demo indication only — not a medical-device alarm. Assess heart rate
+        together with symptoms, activity, prescriptions, and clinical context.
       </p>
     </div>
   );

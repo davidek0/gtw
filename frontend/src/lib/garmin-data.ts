@@ -64,7 +64,7 @@ function subjectId(): string {
 
 async function garminRequest<T>(path: string): Promise<T> {
   const token = process.env.ADMIN_API_TOKEN?.trim();
-  if (!token) throw new Error("Frontendservern saknar ADMIN_API_TOKEN");
+  if (!token) throw new Error("The frontend server is missing ADMIN_API_TOKEN");
   const baseUrl = (
     process.env.BACKEND_URL?.trim() || "http://127.0.0.1:3000"
   ).replace(/\/+$/, "");
@@ -73,12 +73,12 @@ async function garminRequest<T>(path: string): Promise<T> {
     cache: "no-store",
   });
   if (!response.ok)
-    throw new Error(`Garmin-backend svarade ${response.status}`);
+    throw new Error(`The Garmin backend returned ${response.status}`);
   return response.json() as Promise<T>;
 }
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
-    : "Okänt fel vid hämtning av Garmin-data";
+    : "Unknown error while retrieving Garmin data";
 }

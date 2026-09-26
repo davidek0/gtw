@@ -40,7 +40,7 @@ export function PatientMetricGrid({ patient }: { patient: Patient }) {
           setError(
             cause instanceof Error
               ? cause.message
-              : "Kunde inte läsa Garmin-data",
+              : "Could not read Garmin data",
           );
         }
       }
@@ -63,18 +63,18 @@ export function PatientMetricGrid({ patient }: { patient: Patient }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-[0.16em] text-sage-deep uppercase">
-            Hälsodata
+            Health data
           </p>
           <h2 className="mt-1 font-display text-2xl font-medium">
-            Senaste mätvärden
+            Latest readings
           </h2>
         </div>
         <span className="rounded-full bg-white/55 px-3 py-1 text-xs font-semibold text-ink/55 ring-1 ring-black/5">
           {isGarmin
             ? error
-              ? "Garmin · anslutningsfel"
+              ? "Garmin · connection error"
               : "Garmin"
-            : "Mockdata"}
+            : "Demo data"}
         </span>
       </div>
 
@@ -105,7 +105,7 @@ export function PatientMetricGrid({ patient }: { patient: Patient }) {
                   <TrendChart values={chartValues} height={56} area />
                 ) : (
                   <div className="grid h-full place-items-center rounded-lg bg-ink/[0.03] text-[10px] text-ink/35">
-                    Ingen mätserie
+                    No measurement series
                   </div>
                 )}
               </div>
@@ -122,9 +122,9 @@ export function PatientMetricGrid({ patient }: { patient: Patient }) {
 
 function mockDisplayMetrics(patient: Patient): DisplayMetric[] {
   const definitions = [
-    ["sleep", "Sömn"],
-    ["steps", "Dagliga steg"],
-    ["rhr", "Puls"],
+    ["sleep", "Sleep"],
+    ["steps", "Daily steps"],
+    ["rhr", "Heart rate"],
     ["hrv", "Heart rate variability"],
   ] as const;
 
@@ -179,35 +179,35 @@ function garminDisplayMetrics(data: GarminMetrics | null): DisplayMetric[] {
   return [
     {
       key: "sleep",
-      label: "Sömn",
+      label: "Sleep",
       value: sleepHours,
       values: sleepValues,
       note:
         sleep === null
-          ? "Ingen sömnmätning från Garmin ännu."
-          : "Senaste registrerade sömn från Garmin.",
+          ? "No sleep measurement from Garmin yet."
+          : "Latest recorded sleep from Garmin.",
     },
     {
       key: "steps",
-      label: "Dagliga steg",
+      label: "Daily steps",
       value:
-        steps === null ? "—" : new Intl.NumberFormat("sv-SE").format(steps),
+        steps === null ? "—" : new Intl.NumberFormat("en-GB").format(steps),
       values: stepValues,
       note:
         steps === null
-          ? "Ingen stegmätning från Garmin ännu."
-          : "Dagens registrerade steg från Garmin.",
+          ? "No step measurement from Garmin yet."
+          : "Today's recorded steps from Garmin.",
     },
     {
       key: "heart_rate",
-      label: "Puls",
+      label: "Heart rate",
       value: pulse === null ? "—" : String(Math.round(pulse)),
       unit: pulse === null ? undefined : "bpm",
       values: pulseValues,
       note:
         pulse === null
-          ? "Ingen vilopuls från Garmin ännu."
-          : "Senaste vilopuls registrerad av Garmin.",
+          ? "No resting heart rate from Garmin yet."
+          : "Latest resting heart rate recorded by Garmin.",
     },
     {
       key: "hrv",
@@ -217,8 +217,8 @@ function garminDisplayMetrics(data: GarminMetrics | null): DisplayMetric[] {
       values: hrvValues,
       note:
         hrv === null
-          ? "Garmin har inte lämnat något HRV-värde ännu."
-          : "Senaste nattliga HRV från Garmin.",
+          ? "Garmin has not provided an HRV reading yet."
+          : "Latest overnight HRV from Garmin.",
     },
   ];
 }
