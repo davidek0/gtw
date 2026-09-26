@@ -33,7 +33,9 @@ function PatientOverview() {
   const { patients, source, error } = usePatients();
   // TODO: once real auth exists, ask the backend for "me" instead of matching by email.
   const user = ready ? readUser() : "";
-  const patient = patients.find((p) => p.email?.toLowerCase() === user || p.id === user);
+  const patient =
+    patients.find((p) => p.email?.toLowerCase() === user || p.id === user) ??
+    (source !== "backend" ? patients[0] : undefined);
   const [myScore, setMyScore] = useState<number | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const score = myScore ?? patient?.feelingScore ?? 0;

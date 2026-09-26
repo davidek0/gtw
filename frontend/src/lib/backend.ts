@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Patient } from "./health-data";
+import { mockPatients } from "./mock-patients";
 
 const KEY = "pulsefold.backend.url";
 const EVT = "pulsefold-backend-change";
@@ -45,19 +46,19 @@ export async function backendFetch(path: string, init?: RequestInit) {
   return res.json();
 }
 
-export type Source = "none" | "backend" | "error";
+export type Source = "demo" | "backend" | "error";
 
-/** Loads all patients from GET {url}/patients. Empty list when not connected. */
+/** Loads all patients from GET {url}/patients, falling back to demo records. */
 export function usePatients() {
   const url = useBackendUrl();
   const [state, setState] = useState<{ patients: Patient[]; source: Source; error?: string | undefined }>({
-    patients: [],
-    source: "none",
+    patients: mockPatients,
+    source: "demo",
   });
 
   useEffect(() => {
     if (!url) {
-      setState({ patients: [], source: "none" });
+      setState({ patients: mockPatients, source: "demo" });
       return;
     }
     let alive = true;
@@ -66,7 +67,7 @@ export function usePatients() {
         if (alive && Array.isArray(data)) setState({ patients: data, source: "backend" });
       })
       .catch((e: Error) => {
-        if (alive) setState({ patients: [], source: "error", error: e.message });
+        if (alive) setState({ patients: mockPatients, source: "error", error: e.message });
       });
     return () => {
       alive = false;

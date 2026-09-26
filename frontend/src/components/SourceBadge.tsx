@@ -2,7 +2,7 @@ import type { Source } from "@/lib/backend";
 
 export function SourceBadge({ source, error }: { source: Source; error?: string | undefined }) {
   const label =
-    source === "backend" ? "Live · your laptop" : source === "error" ? "Can't reach laptop" : "Demo data";
+    source === "backend" ? "Live · your laptop" : source === "error" ? "Demo · backend unavailable" : "Demo data";
   const tone =
     source === "backend"
       ? "bg-sage/15 text-sage-deep"
