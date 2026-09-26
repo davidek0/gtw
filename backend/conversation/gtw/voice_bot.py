@@ -190,13 +190,7 @@ async def run_transport_checkin(
     settings = get_settings()
     preload_cuda_libraries()
     vad = VADProcessor(vad_analyzer=SileroVADAnalyzer(params=vad_params(settings)))
-    stt = WhisperSTTService(
-        device=settings.whisper_device,
-        compute_type=settings.whisper_compute_type,
-        settings=WhisperSTTService.Settings(
-            model=settings.whisper_model, language=Language.SV, no_speech_prob=settings.whisper_no_speech_prob
-        ),
-    )
+    stt = _create_whisper_stt(settings)
     tts = CalmPiperTTSService(
         length_scale=settings.piper_length_scale, settings=PiperTTSService.Settings(voice=settings.piper_voice)
     )
@@ -230,6 +224,24 @@ async def run_transport_checkin(
 async def run_voice_checkin(dialogue: Dialogue) -> None:
     transport = LocalAudioTransport(LocalAudioTransportParams(audio_in_enabled=True, audio_out_enabled=True))
     await run_transport_checkin(dialogue, transport)
+
+
+def _create_whisper_stt(settings):
+    """Use the configured GPU when available, then fall back to CPU on CUDA driver errors."""
+    options = WhisperSTTService.Settings(
+        model=settings.whisper_model, language=Language.SV, no_speech_prob=settings.whisper_no_speech_prob
+    )
+    try:
+        return WhisperSTTService(
+            device=settings.whisper_device,
+            compute_type=settings.whisper_compute_type,
+            settings=options,
+        )
+    except RuntimeError as error:
+        if settings.whisper_device != "cuda" or "CUDA" not in str(error):
+            raise
+        log.warning("Whisper CUDA is unavailable; falling back to CPU int8: %s", error)
+        return WhisperSTTService(device="cpu", compute_type="int8", settings=options)
 
 
 def main() -> None:
