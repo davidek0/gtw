@@ -30,7 +30,7 @@ function PatientSignIn() {
 
   function enter(email: string) {
     signIn("patient", email);
-    navigate({ to: "/overview" });
+    navigate({ to: "/overview", replace: true });
   }
 
   return (

@@ -47,7 +47,7 @@ function ClinicianSignIn() {
             onSubmit={(e) => {
               e.preventDefault();
               signIn("clinician");
-              navigate({ to: "/worklist" });
+              navigate({ to: "/worklist", replace: true });
             }}
           >
             <input
