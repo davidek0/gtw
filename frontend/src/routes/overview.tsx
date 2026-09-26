@@ -1,10 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { usePatients, sendFeeling } from "@/lib/backend";
 import { SourceBadge } from "@/components/SourceBadge";
 import { TrendChart } from "@/components/TrendChart";
 import { formatValue } from "@/lib/health-data";
-import { useRole, signOut, readUser } from "@/lib/session";
 
 export const Route = createFileRoute("/overview")({
   head: () => ({
@@ -28,14 +27,8 @@ export const Route = createFileRoute("/overview")({
 });
 
 function PatientOverview() {
-  const navigate = useNavigate();
-  const { role, ready } = useRole();
   const { patients, source, error } = usePatients();
-  // TODO: once real auth exists, ask the backend for "me" instead of matching by email.
-  const user = ready ? readUser() : "";
-  const patient =
-    patients.find((p) => p.email?.toLowerCase() === user || p.id === user) ??
-    (source !== "backend" ? patients[0] : undefined);
+  const patient = patients[0];
   const [myScore, setMyScore] = useState<number | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const score = myScore ?? patient?.feelingScore ?? 0;
@@ -51,10 +44,6 @@ function PatientOverview() {
     }
   }
 
-  useEffect(() => {
-    if (ready && role !== "patient") navigate({ to: "/" });
-  }, [ready, role, navigate]);
-
   if (!patient) {
     return (
       <section className="grid min-h-screen place-items-center bg-mist px-6 text-center">
@@ -63,9 +52,6 @@ function PatientOverview() {
           <p className="mt-4 text-sm text-ink/70">
             {source === "backend" ? "No health data found for your account yet." : "Connect to your laptop to see your data."}
           </p>
-          <button onClick={() => { signOut(); navigate({ to: "/" }); }} className="mt-6 text-xs font-semibold text-ink/45 underline">
-            Sign out
-          </button>
         </div>
       </section>
     );
@@ -157,15 +143,6 @@ function PatientOverview() {
           {sent && <p className="mt-1 text-xs font-semibold text-sage-deep">{sent}</p>}
         </div>
 
-        <button
-          onClick={() => {
-            signOut();
-            navigate({ to: "/" });
-          }}
-          className="mt-8 text-xs font-semibold text-ink/45 underline-offset-2 hover:underline"
-        >
-          Sign out
-        </button>
       </div>
     </section>
   );

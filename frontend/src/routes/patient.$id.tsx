@@ -1,8 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { TrendChart } from "@/components/TrendChart";
 import { statusLabel, formatValue, delta, type Status } from "@/lib/health-data";
-import { useRole, signOut } from "@/lib/session";
 import { usePatients } from "@/lib/backend";
 
 export const Route = createFileRoute("/patient/$id")({
@@ -48,14 +46,8 @@ const chartTone: Record<Status, string> = {
 
 function PatientDetail() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
-  const { role, ready } = useRole();
   const { patients } = usePatients();
   const patient = patients.find((p) => p.id === id);
-
-  useEffect(() => {
-    if (ready && role !== "clinician") navigate({ to: "/clinician" });
-  }, [ready, role, navigate]);
 
   if (!patient) return <PatientMissing />;
 
@@ -183,15 +175,6 @@ function PatientDetail() {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            signOut();
-            navigate({ to: "/clinician" });
-          }}
-          className="mt-10 text-xs font-semibold text-ink/45 underline-offset-2 hover:underline"
-        >
-          Sign out
-        </button>
       </div>
     </section>
   );

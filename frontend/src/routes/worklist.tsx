@@ -1,8 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { TrendChart } from "@/components/TrendChart";
 import { statusLabel, formatValue, type Patient, type Status } from "@/lib/health-data";
-import { useRole, signOut } from "@/lib/session";
 import { usePatients } from "@/lib/backend";
 import { SourceBadge } from "@/components/SourceBadge";
 
@@ -58,13 +56,7 @@ function headlineMetric(p: Patient) {
 }
 
 function Worklist() {
-  const navigate = useNavigate();
-  const { role, ready } = useRole();
   const { patients, source, error } = usePatients();
-
-  useEffect(() => {
-    if (ready && role !== "clinician") navigate({ to: "/clinician" });
-  }, [ready, role, navigate]);
 
   const counts = {
     risk: patients.filter((p) => p.status === "risk").length,
@@ -162,15 +154,6 @@ function Worklist() {
           })}
         </div>
 
-        <button
-          onClick={() => {
-            signOut();
-            navigate({ to: "/clinician" });
-          }}
-          className="mt-10 text-xs font-semibold text-ink/45 underline-offset-2 hover:underline"
-        >
-          Sign out
-        </button>
       </div>
     </section>
   );
