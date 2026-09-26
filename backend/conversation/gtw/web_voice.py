@@ -16,7 +16,6 @@ from fastapi import HTTPException
 from pipecat.runner.run import app, main
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
-from pipecat.transcriptions.language import Language
 from pipecat.transports.base_transport import TransportParams
 
 from gtw.config import Settings, get_settings
@@ -48,21 +47,21 @@ class BrowserDialogue:
         return None
 
     async def start(self) -> str:
-        greeting = f"Hello {self.state.patient.name}. How are you feeling today?"
+        greeting = f"Hej {self.state.patient.name}. Hur mår du idag?"
         self._add_turn("assistant", greeting)
         return greeting
 
     async def handle(self, text: str) -> AsyncIterator[Speech]:
         self._add_turn("user", text)
-        reply = "Thank you, I have noted that. Please tell me more, or end the conversation when you are ready."
+        reply = "Tack, jag har noterat det. Berätta gärna mer, eller tryck på avsluta samtalet när du är klar."
         self._add_turn("assistant", reply)
         yield Speech(reply)
 
     async def handle_silence(self) -> str:
         if any(turn.role == "user" for turn in self.state.transcript):
-            reply = "I am still here. End the conversation whenever you feel ready."
+            reply = "Jag finns kvar. Tryck på avsluta samtalet när du känner dig klar."
         else:
-            reply = "I am listening. Please describe in your own words how you are feeling today."
+            reply = "Jag lyssnar. Berätta med egna ord hur du mår idag."
         self._add_turn("assistant", reply)
         return reply
 
@@ -118,9 +117,6 @@ async def bot(runner_args: RunnerArguments) -> None:
             dialogue,
             transport,
             handle_sigint=runner_args.handle_sigint,
-            language=Language.EN,
-            whisper_model=settings.browser_whisper_model,
-            piper_voice=settings.browser_piper_voice,
         )
         summary = await _rewrite_summary(dialogue, settings)
         RESULTS[result_token] = {
@@ -132,7 +128,7 @@ async def bot(runner_args: RunnerArguments) -> None:
     except Exception:
         RESULTS[result_token] = {
             "ready": True,
-            "error": "The conversation ended before a summary could be created.",
+            "error": "Samtalet avslutades innan en sammanfattning kunde skapas.",
         }
         raise
 
@@ -163,15 +159,15 @@ async def _rewrite_summary(dialogue: BrowserDialogue, settings: Settings) -> str
                 {
                     "role": "system",
                     "content": (
-                        "You summarize a patient's spoken check-in for healthcare professionals. "
-                        "Write 1–3 short, factual sentences in English and in the third person. "
-                        "Include only information the patient has provided. Do not invent details, "
-                        "diagnose, or give medical advice. Return only the summary."
+                        "Du sammanfattar en patients muntliga incheckning för vårdpersonal. "
+                        "Skriv 1–3 korta, sakliga meningar på svenska i tredje person. "
+                        "Ta bara med sådant patienten själv har berättat. Hitta inte på, ställ "
+                        "ingen diagnos och ge inga medicinska råd. Svara endast med sammanfattningen."
                     ),
                 },
                 {
                     "role": "user",
-                    "content": f"Patient: {dialogue.state.patient.name}\n\nConversation:\n{transcript}",
+                    "content": f"Patient: {dialogue.state.patient.name}\n\nSamtal:\n{transcript}",
                 },
             ]
         )

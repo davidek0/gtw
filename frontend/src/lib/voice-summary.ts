@@ -6,7 +6,7 @@ export type LocalVoiceSummary = {
   endedAt: string;
 };
 
-const KEY_PREFIX = "pulsefold.voice-summary.en.";
+const KEY_PREFIX = "pulsefold.voice-summary.";
 const CHANGE_EVENT = "pulsefold:voice-summary";
 
 export function saveVoiceSummary(
