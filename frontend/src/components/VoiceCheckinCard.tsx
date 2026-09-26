@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, PhoneOff } from "lucide-react";
 import type { PipecatClient, TranscriptData } from "@pipecat-ai/client-js";
-import { saveVoiceSummary } from "@/lib/voice-summary";
+import { voiceServerUrl } from "@/lib/voice-server";
+import {
+  parseVoiceSummary,
+  saveVoiceSummary,
+  type CheckinStatus,
+} from "@/lib/voice-summary";
 
 type CallState =
   | "idle"
@@ -21,8 +26,20 @@ const stateCopy: Record<CallState, string> = {
   "ai-speaking": "The AI is responding",
   summarizing: "The AI is summarizing the conversation…",
   finished: "Your summary is ready",
-  error: "The conversation could not be started",
+  error: "Something went wrong with the conversation",
 };
+
+const finishedCopy: Record<CheckinStatus, string> = {
+  completed: "Your summary is ready",
+  missed: "No answer was detected",
+};
+
+const LIVE_STATES: readonly CallState[] = [
+  "connecting",
+  "listening",
+  "patient-speaking",
+  "ai-speaking",
+];
 
 export function VoiceCheckinCard({
   patientId,
@@ -42,6 +59,7 @@ export function VoiceCheckinCard({
   const [lastReply, setLastReply] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
+  const [outcome, setOutcome] = useState<CheckinStatus | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -59,6 +77,7 @@ export function VoiceCheckinCard({
     if (clientRef.current) return;
     setState("connecting");
     setError(null);
+    setOutcome(null);
     failedRef.current = false;
     setLastHeard("");
     setLastReply("");
@@ -77,26 +96,34 @@ export function VoiceCheckinCard({
         enableMic: true,
         enableCam: false,
         callbacks: {
-          onConnected: () => setState("listening"),
+          // The greeting may already be playing; only leave "connecting".
+          onConnected: () =>
+            setState((current) =>
+              current === "connecting" ? "listening" : current,
+            ),
           onDisconnected: () => {
             clientRef.current = null;
+            if (botAudioRef.current) botAudioRef.current.srcObject = null;
             if (!failedRef.current) void collectSummary(resultToken);
           },
-          onUserStartedSpeaking: () => setState("patient-speaking"),
-          onUserStoppedSpeaking: () => setState("listening"),
-          onBotStartedSpeaking: () => setState("ai-speaking"),
-          onBotStoppedSpeaking: () => setState("listening"),
-          onTrackStarted: (track) => {
-            if (track.kind === "audio") void playBotAudio(track);
+          onUserStartedSpeaking: () => setLiveState("patient-speaking"),
+          onUserStoppedSpeaking: () => setLiveState("listening"),
+          onBotStartedSpeaking: () => setLiveState("ai-speaking"),
+          onBotStoppedSpeaking: () => setLiveState("listening"),
+          // The patient's own mic track also arrives here; only play the bot.
+          onTrackStarted: (track, participant) => {
+            if (track.kind === "audio" && !participant?.local)
+              void playBotAudio(track);
           },
           onTrackStopped: (track) => {
-            const stream = botAudioRef.current?.srcObject;
+            const audio = botAudioRef.current;
+            const stream = audio?.srcObject;
             if (
-              track.kind === "audio" &&
+              audio &&
               stream instanceof MediaStream &&
               stream.getTracks().includes(track)
             ) {
-              botAudioRef.current.srcObject = null;
+              audio.srcObject = null;
             }
           },
           onUserTranscript: (data: TranscriptData) => {
@@ -140,6 +167,11 @@ export function VoiceCheckinCard({
     if (resultToken && !failedRef.current) void collectSummary(resultToken);
   }
 
+  /** Speaking events must not override summarizing/finished/error. */
+  function setLiveState(next: CallState) {
+    setState((current) => (LIVE_STATES.includes(current) ? next : current));
+  }
+
   function fail(message: string) {
     failedRef.current = true;
     const client = clientRef.current;
@@ -176,29 +208,26 @@ export function VoiceCheckinCard({
           { cache: "no-store" },
         );
         if (response.status === 404) continue;
-        if (!response.ok) throw new Error(`The voice server returned ${response.status}`);
+        if (!response.ok)
+          throw new Error(`The voice server returned ${response.status}`);
 
         const result = (await response.json()) as {
           ready: boolean;
-          summary?: string;
-          status?: string | null;
-          endedAt?: string;
           error?: string;
         };
         if (!result.ready) continue;
-        if (!result.summary) {
-          throw new Error(
-            result.error || "The AI could not create a summary.",
-          );
+        const checkin = parseVoiceSummary(result);
+        if (!checkin) {
+          throw new Error(result.error || "The AI could not create a summary.");
         }
 
         saveVoiceSummary(patientId, {
-          summary: result.summary,
-          status: result.status ?? null,
-          endedAt: result.endedAt || new Date().toISOString(),
+          ...checkin,
+          endedAt: checkin.endedAt || new Date().toISOString(),
         });
         if (mountedRef.current) {
           setError(null);
+          setOutcome(checkin.status ?? "completed");
           setState("finished");
         }
         return;
@@ -234,9 +263,8 @@ export function VoiceCheckinCard({
             Talk to your AI
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/60">
-            Tell us how you are feeling. After the conversation, the AI writes
-            a short summary shown under Patient wellbeing. It is saved only in
-            this browser.
+            Tell us how you are feeling. After the conversation, the AI writes a
+            short summary that your care team can see.
           </p>
         </div>
         <button
@@ -264,9 +292,23 @@ export function VoiceCheckinCard({
 
       <div className="mt-5 flex items-center gap-3 rounded-xl bg-white/50 px-4 py-3 ring-1 ring-black/5">
         <span
-          className={`size-2.5 rounded-full ${active ? "animate-pulse bg-sage" : state === "error" ? "bg-risk" : "bg-ink/20"}`}
+          className={`size-2.5 rounded-full ${
+            active
+              ? "animate-pulse bg-sage"
+              : state === "error"
+                ? "bg-risk"
+                : state === "finished"
+                  ? outcome === "missed"
+                    ? "bg-amber"
+                    : "bg-sage"
+                  : "bg-ink/20"
+          }`}
         />
-        <p className="text-sm font-semibold text-ink/70">{stateCopy[state]}</p>
+        <p className="text-sm font-semibold text-ink/70">
+          {state === "finished" && outcome
+            ? finishedCopy[outcome]
+            : stateCopy[state]}
+        </p>
       </div>
 
       {(lastHeard || lastReply) && (
@@ -299,12 +341,6 @@ export function VoiceCheckinCard({
       )}
     </section>
   );
-}
-
-function voiceServerUrl(): string {
-  const configured = import.meta.env.VITE_VOICE_SERVER_URL?.trim();
-  if (configured) return configured.replace(/\/+$/, "");
-  return `${window.location.protocol}//${window.location.hostname}:7860`;
 }
 
 function delay(milliseconds: number): Promise<void> {

@@ -5,12 +5,14 @@ uv run gtw-voice --patient Karin --dry-run  # in-memory, prints the result
 """
 
 import asyncio
+import functools
 import logging
 import re
 import sys
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Coroutine
 
+from faster_whisper import WhisperModel
 from loguru import logger as pipecat_logger
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import (
@@ -41,7 +43,7 @@ from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransp
 from pipecat.workers.runner import WorkerRunner
 
 from gtw.cli import LOG_FORMAT, parse_args, run_checkin
-from gtw.config import get_settings
+from gtw.config import Settings, get_settings
 from gtw.dialogue import Dialogue, Speech
 from gtw.speech import preload_cuda_libraries, vad_params
 
@@ -89,7 +91,14 @@ class CheckinProcessor(FrameProcessor):
         self._barge_in = barge_in
         self._turn_lock = asyncio.Lock()
         self._silence_task: asyncio.Task | None = None
+        self._tasks: set[asyncio.Task] = set()
         self._bot_speaking = False
+
+    async def cleanup(self):
+        await super().cleanup()
+        # A call can end mid-turn, e.g. when the browser disconnects.
+        for task in list(self._tasks):
+            await self.cancel_task(task)
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -97,12 +106,12 @@ class CheckinProcessor(FrameProcessor):
         if isinstance(frame, TranscriptionFrame):
             if text := WHISPER_TOKEN.sub("", frame.text).strip():
                 self._cancel_silence_timer()
-                self.create_task(self._user_turn(text))
+                self._start(self._user_turn(text))
             return
 
         await self.push_frame(frame, direction)
         if isinstance(frame, StartFrame):
-            self.create_task(self._greet())
+            self._start(self._greet())
         elif isinstance(frame, VADUserStartedSpeakingFrame):
             log.info("Speech detected")
             self._cancel_silence_timer()
@@ -170,10 +179,16 @@ class CheckinProcessor(FrameProcessor):
             # Pushed after the last words, so they are spoken before the pipeline closes.
             await self.push_frame(EndWorkerFrame())
 
+    def _start(self, coroutine: Coroutine) -> asyncio.Task:
+        task = self.create_task(coroutine)
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+        return task
+
     def _restart_silence_timer(self) -> None:
         self._cancel_silence_timer()
         if not self._dialogue.ended:
-            self._silence_task = self.create_task(self._on_silence())
+            self._silence_task = self._start(self._on_silence())
 
     def _cancel_silence_timer(self) -> None:
         if self._silence_task:
@@ -226,22 +241,39 @@ async def run_voice_checkin(dialogue: Dialogue) -> None:
     await run_transport_checkin(dialogue, transport)
 
 
-def _create_whisper_stt(settings):
-    """Use the configured GPU when available, then fall back to CPU on CUDA driver errors."""
-    options = WhisperSTTService.Settings(
-        model=settings.whisper_model, language=Language.SV, no_speech_prob=settings.whisper_no_speech_prob
-    )
+@functools.cache
+def _load_whisper(model: str, device: str, compute_type: str) -> WhisperModel:
+    """Load each model once per process, as the browser server runs many calls; fall back to CPU without CUDA."""
     try:
-        return WhisperSTTService(
-            device=settings.whisper_device,
-            compute_type=settings.whisper_compute_type,
-            settings=options,
-        )
+        return WhisperModel(model, device=device, compute_type=compute_type)
     except RuntimeError as error:
-        if settings.whisper_device != "cuda" or "CUDA" not in str(error):
+        if device != "cuda" or "CUDA" not in str(error):
             raise
         log.warning("Whisper CUDA is unavailable; falling back to CPU int8: %s", error)
-        return WhisperSTTService(device="cpu", compute_type="int8", settings=options)
+        return _load_whisper(model, "cpu", "int8")
+
+
+class CachedWhisperSTTService(WhisperSTTService):
+    """Pipecat's Whisper, sharing the process-wide model instead of loading its own."""
+
+    def _load(self):
+        self._model = _load_whisper(self._settings.model, self._device, self._compute_type)
+
+
+def preload_whisper(settings: Settings) -> None:
+    """Load the Whisper model ahead of the first call, so the patient is not kept waiting."""
+    preload_cuda_libraries()
+    _load_whisper(settings.whisper_model, settings.whisper_device, settings.whisper_compute_type)
+
+
+def _create_whisper_stt(settings: Settings) -> WhisperSTTService:
+    return CachedWhisperSTTService(
+        device=settings.whisper_device,
+        compute_type=settings.whisper_compute_type,
+        settings=WhisperSTTService.Settings(
+            model=settings.whisper_model, language=Language.SV, no_speech_prob=settings.whisper_no_speech_prob
+        ),
+    )
 
 
 def main() -> None:

@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -13,12 +13,18 @@ const sharedEnv = {
   // the backend and Garmin monitor.
   ...readEnvFile(path.join(root, "backend", ".env")),
 };
+// The voice check-in services read their own configuration (LLM broker keys).
+const conversationEnv = readEnvFile(
+  path.join(root, "backend", "conversation", ".env"),
+);
 const processes = [
   {
     name: "backend",
     command: "npm",
     cwd: path.join(root, "backend"),
     args: ["run", "dev"],
+    requires: ["DATABASE_URL"],
+    optional: true,
   },
   {
     name: "frontend",
@@ -31,6 +37,8 @@ const processes = [
     command: "npm",
     cwd: path.join(root, "backend"),
     args: ["run", "garmin:live:monitor"],
+    requires: ["DATABASE_URL", "ADMIN_API_TOKEN"],
+    optional: true,
   },
   {
     name: "llm-proxy",
@@ -38,8 +46,8 @@ const processes = [
     cwd: path.join(root, "backend", "conversation"),
     // LiteLLM must remain stateless for this demo, even though the main backend
     // has a DATABASE_URL for Garmin/Drizzle.
-    env: { PYTHON_DOTENV_DISABLED: "1" },
-    omitEnv: ["DATABASE_URL"],
+    env: { ...conversationEnv, PYTHON_DOTENV_DISABLED: "1" },
+    omitEnv: ["DATABASE_URL", "DIRECT_URL"],
     args: [
       "run",
       "litellm",
@@ -53,6 +61,7 @@ const processes = [
     name: "voice",
     command: "uv",
     cwd: path.join(root, "backend", "conversation"),
+    env: conversationEnv,
     args: [
       "run",
       "python",
@@ -72,7 +81,15 @@ let stopping = false;
 const children = [];
 
 function startProcess(
-  { name, command: executable, cwd, args, env = {}, omitEnv = [] },
+  {
+    name,
+    command: executable,
+    cwd,
+    args,
+    env = {},
+    omitEnv = [],
+    optional = false,
+  },
   oneShot = false,
 ) {
   // Node 25 on Windows requires .cmd files to run through a shell. Every
@@ -86,6 +103,8 @@ function startProcess(
     env: processEnv,
     stdio: "inherit",
     shell: useShell,
+    // Its own process group, so shutdown also reaches the servers npm/uv start.
+    detached: !useShell,
   });
 
   child.on("error", (error) => {
@@ -100,6 +119,10 @@ function startProcess(
         console.error(
           `[${name}] failed with code ${code}; the app remains running.`,
         );
+    } else if (optional) {
+      console.error(
+        `[${name}] stopped with code ${code}; the rest of the demo keeps running.`,
+      );
     } else {
       console.error(`[${name}] stopped unexpectedly with code ${code}.`);
       shutdown(code || 1);
@@ -109,22 +132,48 @@ function startProcess(
   return child;
 }
 
-for (const processDefinition of processes) startProcess(processDefinition);
-void syncGarminAfterBackendStarts();
+installMissingDependencies();
+const started = new Set();
+for (const processDefinition of processes) {
+  const { name, env = {}, requires = [] } = processDefinition;
+  const missing = requires.filter(
+    (key) => !(env[key] ?? sharedEnv[key])?.trim(),
+  );
+  if (missing.length) {
+    console.warn(
+      `[${name}] skipped: set ${missing.join(", ")} in backend/.env to enable it.`,
+    );
+    continue;
+  }
+  startProcess(processDefinition);
+  started.add(name);
+}
+if (started.has("backend")) void syncGarminAfterBackendStarts();
 
 function shutdown(code = 0) {
   if (stopping) return;
   stopping = true;
-  for (const child of children) child.kill("SIGINT");
+  for (const child of children) stopTree(child);
   setTimeout(() => process.exit(code), 1_000).unref();
+}
+
+function stopTree(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (useShell) {
+    spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"]);
+    return;
+  }
+  try {
+    process.kill(-child.pid, "SIGINT");
+  } catch {
+    // The group has already exited.
+  }
 }
 
 process.on("SIGINT", () => shutdown());
 process.on("SIGTERM", () => shutdown());
 
-console.log(
-  "GTW demo running: frontend, backend, browser voice chat, continuous Garmin pulse, and one startup cloud sync.",
-);
+console.log(`GTW demo running: ${[...started].join(", ")}.`);
 
 async function syncGarminAfterBackendStarts() {
   const backendUrl = (sharedEnv.BACKEND_URL || "http://127.0.0.1:3000").replace(
@@ -158,6 +207,30 @@ async function syncGarminAfterBackendStarts() {
     console.error(
       "Backend did not become ready; startup Garmin sync was skipped.",
     );
+  }
+}
+
+function installMissingDependencies() {
+  for (const dir of ["backend", "frontend"]) {
+    const cwd = path.join(root, dir);
+    if (existsSync(path.join(cwd, "node_modules"))) continue;
+    console.log(`Installing ${dir} dependencies...`);
+    // The frontend is locked with bun.lock; don't leave a second lockfile behind.
+    const args =
+      dir === "frontend" ? ["install", "--no-package-lock"] : ["install"];
+    const result = spawnSync(
+      useShell ? `npm ${args.join(" ")}` : "npm",
+      useShell ? [] : args,
+      {
+        cwd,
+        stdio: "inherit",
+        shell: useShell,
+      },
+    );
+    if (result.status !== 0) {
+      console.error(`npm install failed in ${dir}.`);
+      process.exit(1);
+    }
   }
 }
 

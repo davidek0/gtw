@@ -11,7 +11,7 @@ from gtw.state import CheckinState
 GOODBYE = "Tack för att du tog dig tid. Jag skickar det här till sjuksköterskan. Ha en fin dag!"
 STOP_GOODBYE = "Okej, då slutar vi här. Vårdpersonalen hör av sig om det behövs. Ha det bra!"
 TECHNICAL_PROBLEM = "Jag har lite tekniska problem, vårdpersonalen hör av sig."
-NO_ANSWER = "Jag hör inget svar. Vårdpersonalen hör av sig. Hej då."
+NO_ANSWER = "Jag hör inget svar, så vi avslutar här. Hej då."
 ASK_CORRECTION = "Förlåt. Vad är det som inte stämmer?"
 CONFIRM = "Stämmer det?"
 

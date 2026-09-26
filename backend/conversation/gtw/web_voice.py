@@ -1,7 +1,8 @@
 """Browser voice check-in over Pipecat SmallWebRTC.
 
 The conversation and its generated summary stay in process memory. The browser
-retrieves the summary once with an unguessable token; no database is involved.
+retrieves the summary once with an unguessable token, and the latest result per
+patient is kept for the clinician view; no database is involved.
 
 Run with: uv run python -m gtw.web_voice -t webrtc --host 0.0.0.0 --port 7860
 """
@@ -18,17 +19,21 @@ from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.transports.base_transport import TransportParams
 
-from gtw.config import Settings, get_settings
+from gtw.cli import LOG_FORMAT
+from gtw.config import get_settings
 from gtw.dialogue import Speech
-from gtw.llm import LLMError, ProxyLLM
-from gtw.state import CheckinState, Patient, Turn
-from gtw.voice_bot import run_transport_checkin
+from gtw.llm import ChatLLM, LLMError, ProxyLLM
+from gtw.state import CheckinState, CheckinStatus, Patient, Turn
+from gtw.voice_bot import preload_whisper, run_transport_checkin
 
 log = logging.getLogger(__name__)
 
 SUBJECT_ID = re.compile(r"^[A-Za-z0-9._-]{1,200}$")
 RESULT_TOKEN = re.compile(r"^[0-9a-f-]{36}$")
 RESULTS: dict[str, dict[str, Any]] = {}
+# The latest finished result per subjectId, kept for the server's lifetime.
+LATEST_CHECKINS: dict[str, dict[str, Any]] = {}
+MISSED_SUMMARY = "Ingen kontakt vid dagens incheckning – patienten svarade inte."
 
 
 class BrowserDialogue:
@@ -41,6 +46,11 @@ class BrowserDialogue:
     def ended(self) -> bool:
         # The patient, not the scripted dialogue, decides when this call ends.
         return False
+
+    @property
+    def status(self) -> CheckinStatus:
+        answered = any(turn.role == "user" and turn.text.strip() for turn in self.state.transcript)
+        return "completed" if answered else "missed"
 
     def set_device_state(self, _state: str) -> None:
         # Browser check-ins are intentionally stateless and have no device row.
@@ -85,6 +95,12 @@ async def checkin_result(result_token: str) -> dict[str, Any]:
     return RESULTS.pop(result_token)
 
 
+@app.get("/api/latest-checkins")
+async def latest_checkins() -> dict[str, dict[str, Any]]:
+    """The latest finished check-in per subjectId, for the clinician view."""
+    return LATEST_CHECKINS
+
+
 async def bot(runner_args: RunnerArguments) -> None:
     body = runner_args.body if isinstance(runner_args.body, dict) else {}
     subject_id = str(body.get("subjectId", "person-1")).strip()
@@ -118,41 +134,37 @@ async def bot(runner_args: RunnerArguments) -> None:
             transport,
             handle_sigint=runner_args.handle_sigint,
         )
-        summary = await _rewrite_summary(dialogue, settings)
-        RESULTS[result_token] = {
-            "ready": True,
-            "summary": summary,
-            "status": "completed",
-            "endedAt": datetime.now(UTC).isoformat(),
-        }
+        llm = ProxyLLM(
+            settings.llm_base_url,
+            settings.litellm_master_key,
+            model=settings.dialogue_model,
+            timeout_s=settings.dialogue_timeout_s,
+        )
+        result = await summarize(dialogue, llm)
     except Exception:
         RESULTS[result_token] = {
             "ready": True,
             "error": "Samtalet avslutades innan en sammanfattning kunde skapas.",
         }
         raise
+    RESULTS[result_token] = {"ready": True, **result}
+    LATEST_CHECKINS[subject_id] = result
 
 
-async def _rewrite_summary(dialogue: BrowserDialogue, settings: Settings) -> str:
-    user_turns = [
-        turn.text.strip()
-        for turn in dialogue.state.transcript
-        if turn.role == "user" and turn.text.strip()
-    ]
-    if not user_turns:
-        raise ValueError("The conversation did not contain a patient response")
+async def summarize(dialogue: BrowserDialogue, llm: ChatLLM) -> dict[str, Any]:
+    """The finished result; a missed check-in gets a fixed summary without an LLM call."""
+    ended_at = datetime.now(UTC).isoformat()
+    status = dialogue.status
+    summary = MISSED_SUMMARY if status == "missed" else await _rewrite_summary(dialogue, llm)
+    return {"summary": summary, "status": status, "endedAt": ended_at}
 
+
+async def _rewrite_summary(dialogue: BrowserDialogue, llm: ChatLLM) -> str:
     transcript = "\n".join(
         f"{'AI' if turn.role == 'assistant' else dialogue.state.patient.name}: {turn.text.strip()}"
         for turn in dialogue.state.transcript
         if turn.text.strip()
     )[-12_000:]
-    llm = ProxyLLM(
-        settings.llm_base_url,
-        settings.litellm_master_key,
-        model=settings.dialogue_model,
-        timeout_s=settings.dialogue_timeout_s,
-    )
     try:
         summary = await llm.complete(
             [
@@ -161,6 +173,8 @@ async def _rewrite_summary(dialogue: BrowserDialogue, settings: Settings) -> str
                     "content": (
                         "Du sammanfattar en patients muntliga incheckning för vårdpersonal. "
                         "Skriv 1–3 korta, sakliga meningar på svenska i tredje person. "
+                        'Kalla patienten vid namn eller "patienten", aldrig han, hon eller andra könade '
+                        "pronomen; gissa inte kön utifrån namnet. "
                         "Ta bara med sådant patienten själv har berättat. Hitta inte på, ställ "
                         "ingen diagnos och ge inga medicinska råd. Svara endast med sammanfattningen."
                     ),
@@ -186,4 +200,8 @@ def _limit_pending_results() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+    for noisy in ("aioice", "httpx"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+    preload_whisper(get_settings())
     main()

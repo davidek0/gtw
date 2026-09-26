@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { statusLabel, type Status } from "@/lib/health-data";
 import { usePatients } from "@/lib/backend";
 import { SourceBadge } from "@/components/SourceBadge";
+import { useVoiceSummaries } from "@/lib/voice-summary";
 
 export const Route = createFileRoute("/worklist")({
   head: () => ({
@@ -12,10 +13,14 @@ export const Route = createFileRoute("/worklist")({
         content:
           "Triage view of monitored patients with deviation warnings for declining vitals and self-reported decline.",
       },
-      { property: "og:title", content: "Patient worklist — Pulsefold Clinical" },
+      {
+        property: "og:title",
+        content: "Patient worklist — Pulsefold Clinical",
+      },
       {
         property: "og:description",
-        content: "Triage monitored patients by risk, with clear warnings on declining readings.",
+        content:
+          "Triage monitored patients by risk, with clear warnings on declining readings.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -41,6 +46,7 @@ const tone: Record<Status, { card: string; badge: string }> = {
 
 function Worklist() {
   const { patients, source, error } = usePatients();
+  const checkins = useVoiceSummaries();
 
   const counts = {
     risk: patients.filter((p) => p.status === "risk").length,
@@ -49,13 +55,16 @@ function Worklist() {
   };
   const ordered = [...patients].sort(
     (a, b) =>
-      ["risk", "watch", "stable"].indexOf(a.status) - ["risk", "watch", "stable"].indexOf(b.status),
+      ["risk", "watch", "stable"].indexOf(a.status) -
+      ["risk", "watch", "stable"].indexOf(b.status),
   );
 
   return (
     <section className="min-h-screen bg-mist">
       <div className="mx-auto max-w-6xl px-6 py-14">
-        <div className="mb-6"><SourceBadge source={source} error={error} /></div>
+        <div className="mb-6">
+          <SourceBadge source={source} error={error} />
+        </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-[0.2em] text-sage-deep uppercase">
@@ -83,7 +92,8 @@ function Worklist() {
 
         {counts.risk > 0 && (
           <div className="mt-5 rounded-xl border-l-4 border-risk bg-risk/10 px-4 py-3 text-sm font-semibold text-risk-deep">
-            ⚠ {counts.risk} patients show a declining pattern requiring review within 72 hours.
+            ⚠ {counts.risk} patients show a declining pattern requiring review
+            within 72 hours.
           </div>
         )}
 
@@ -99,14 +109,23 @@ function Worklist() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span className="font-display text-lg font-semibold text-ink">{p.name}</span>
+                    <span className="font-display text-lg font-semibold text-ink">
+                      {p.name}
+                    </span>
                     <p className="mt-0.5 text-xs text-ink/50">{p.age} years</p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${t.badge}`}
-                  >
-                    {statusLabel[p.status]}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${t.badge}`}
+                    >
+                      {statusLabel[p.status]}
+                    </span>
+                    {checkins[p.id]?.status === "missed" && (
+                      <span className="rounded-full bg-amber/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-deep uppercase">
+                        Missed check-in
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-5 border-t border-ink/10 pt-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-ink/40 uppercase">
@@ -120,7 +139,6 @@ function Worklist() {
             );
           })}
         </div>
-
       </div>
     </section>
   );

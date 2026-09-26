@@ -4,7 +4,7 @@ import { LiveHeartRatePanel } from "@/components/LiveHeartRatePanel";
 import { PatientMetricGrid } from "@/components/PatientMetricGrid";
 import { statusLabel, type Status } from "@/lib/health-data";
 import { usePatients } from "@/lib/backend";
-import { useVoiceSummary } from "@/lib/voice-summary";
+import { formatCheckinTime, useVoiceSummary } from "@/lib/voice-summary";
 
 export const Route = createFileRoute("/patient/$id")({
   head: () => ({
@@ -12,7 +12,8 @@ export const Route = createFileRoute("/patient/$id")({
       { title: "Patient overview — Pulsefold Clinical" },
       {
         name: "description",
-        content: "Clinical analysis and selected urgent live data for the patient.",
+        content:
+          "Clinical analysis and selected urgent live data for the patient.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -31,9 +32,7 @@ function PatientMissing() {
   return (
     <div className="grid min-h-screen place-items-center bg-mist px-6 text-center">
       <div>
-        <h1 className="font-display text-2xl font-medium">
-          Patient not found
-        </h1>
+        <h1 className="font-display text-2xl font-medium">Patient not found</h1>
         <Link
           to="/worklist"
           className="mt-3 inline-block text-sm font-semibold text-sage-deep underline"
@@ -95,14 +94,19 @@ function PatientDetail() {
           <p className="mt-5 max-w-3xl font-display text-2xl font-medium leading-snug text-ink">
             {voiceCheckin?.summary ?? patient.clinicalNote}
           </p>
-          {voiceCheckin?.endedAt && (
-            <p className="mt-3 text-xs font-semibold text-ink/40">
-              Latest AI check-in{" "}
-              {new Intl.DateTimeFormat("en-GB", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(voiceCheckin.endedAt))}
-            </p>
+          {voiceCheckin && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {voiceCheckin.endedAt && (
+                <p className="text-xs font-semibold text-ink/40">
+                  Latest AI check-in {formatCheckinTime(voiceCheckin.endedAt)}
+                </p>
+              )}
+              {voiceCheckin.status === "missed" && (
+                <span className="rounded-full bg-amber/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-deep uppercase">
+                  Missed check-in
+                </span>
+              )}
+            </div>
           )}
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {patient.flags.map((flag) => (
