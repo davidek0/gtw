@@ -138,7 +138,7 @@ export const mockPatients: Patient[] = [
       {
         level: "watch",
         title: "Puls vald för akut monitorering",
-        detail: "Livedata jämförs med de lokalt valda demo-gränserna 100 och 120 bpm.",
+        detail: "Livedata jämförs med den akutgräns som ansvarig läkare väljer i patientvyn.",
       },
       {
         level: "stable",
@@ -147,7 +147,7 @@ export const mockPatients: Patient[] = [
       },
     ],
     clinicalNote:
-      "Arturs puls är vald som akut livedata. Systemet markerar förhöjd nivå från 100 bpm och akut varning från 120 bpm. Gränserna är demospecifika och ersätter inte klinisk bedömning.",
+      "Arturs puls är vald som akut livedata. Ansvarig läkare kan justera akutgränsen direkt i livepanelen. Gränsen är demospecifik och ersätter inte klinisk bedömning.",
     metrics: metrics("watch", {
       rhr: [68, 76],
       sleep: [7.1, 6.4],

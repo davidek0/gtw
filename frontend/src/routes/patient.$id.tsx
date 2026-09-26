@@ -111,7 +111,7 @@ function PatientDetail() {
           </div>
 
           {liveMetric === "heart-rate" && isArtur ? (
-            <LiveHeartRatePanel />
+            <LiveHeartRatePanel patientId={patient.id} />
           ) : (
             <div className="grid min-h-52 place-items-center rounded-2xl border border-dashed border-ink/15 bg-white/30 px-6 text-center">
               <div>

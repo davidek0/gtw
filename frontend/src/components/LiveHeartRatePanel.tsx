@@ -12,10 +12,23 @@ const backendUrl =
   (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/+$/, "") ||
   "http://127.0.0.1:3000";
 
-export function LiveHeartRatePanel() {
+const DEFAULT_DANGER_THRESHOLD = 120;
+
+export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
   const [samples, setSamples] = useState<HeartRateSample[]>([]);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
+  const [dangerThreshold, setDangerThreshold] = useState(DEFAULT_DANGER_THRESHOLD);
+  const [thresholdInput, setThresholdInput] = useState(String(DEFAULT_DANGER_THRESHOLD));
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(`pulsefold.pulse-danger.${patientId}`));
+    if (Number.isInteger(saved) && saved >= 60 && saved <= 220) {
+      setDangerThreshold(saved);
+      setThresholdInput(String(saved));
+    }
+  }, [patientId]);
 
   useEffect(() => {
     let active = true;
@@ -56,7 +69,28 @@ export function LiveHeartRatePanel() {
     : null;
   const isLive = ageSeconds !== null && ageSeconds <= 15 && !error;
   const bpm = latest?.bpm;
-  const level = !isLive || bpm === undefined ? "offline" : bpm >= 120 ? "danger" : bpm >= 100 ? "watch" : "ok";
+  const warningThreshold = Math.max(40, dangerThreshold - 20);
+  const level =
+    !isLive || bpm === undefined
+      ? "offline"
+      : bpm >= dangerThreshold
+        ? "danger"
+        : bpm >= warningThreshold
+          ? "watch"
+          : "ok";
+
+  function saveThreshold() {
+    const parsed = Math.round(Number(thresholdInput));
+    if (!Number.isFinite(parsed)) {
+      setThresholdInput(String(dangerThreshold));
+      return;
+    }
+    const next = Math.min(Math.max(parsed, 60), 220);
+    setDangerThreshold(next);
+    setThresholdInput(String(next));
+    window.localStorage.setItem(`pulsefold.pulse-danger.${patientId}`, String(next));
+    setThresholdSaved(true);
+  }
 
   const presentation = {
     offline: {
@@ -119,13 +153,52 @@ export function LiveHeartRatePanel() {
 
         <div className="grid grid-cols-2 gap-2 text-center text-xs">
           <div className="rounded-xl bg-white/55 px-4 py-3 ring-1 ring-black/5">
-            <span className="block font-display text-xl font-semibold text-amber-deep">100</span>
+            <span className="block font-display text-xl font-semibold text-amber-deep">
+              {warningThreshold}
+            </span>
             <span className="text-ink/45">förhöjd</span>
           </div>
           <div className="rounded-xl bg-white/55 px-4 py-3 ring-1 ring-black/5">
-            <span className="block font-display text-xl font-semibold text-risk-deep">120</span>
+            <span className="block font-display text-xl font-semibold text-risk-deep">
+              {dangerThreshold}
+            </span>
             <span className="text-ink/45">akut gräns</span>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-xl bg-white/45 px-4 py-3 ring-1 ring-black/5">
+        <label className="text-xs font-semibold text-ink/60">
+          Läkarens akuta pulsgräns
+          <span className="mt-1 flex items-center gap-2">
+            <input
+              type="number"
+              min="60"
+              max="220"
+              step="1"
+              value={thresholdInput}
+              onChange={(event) => {
+                setThresholdInput(event.target.value);
+                setThresholdSaved(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") saveThreshold();
+              }}
+              className="w-24 rounded-lg border border-ink/15 bg-white/80 px-3 py-2 text-base font-semibold text-ink outline-none focus:border-risk"
+              aria-label="Akut pulsgräns"
+            />
+            <span className="text-xs font-medium text-ink/45">bpm</span>
+          </span>
+        </label>
+        <div className="flex items-center gap-3">
+          {thresholdSaved && <span className="text-xs font-semibold text-sage-deep">Sparad</span>}
+          <button
+            type="button"
+            onClick={saveThreshold}
+            className="rounded-lg bg-ink px-4 py-2 text-xs font-semibold text-primary-foreground"
+          >
+            Spara gräns
+          </button>
         </div>
       </div>
 
@@ -140,8 +213,9 @@ export function LiveHeartRatePanel() {
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-ink/50">
-        Demoindikering – inte ett medicintekniskt larm. Bedöm puls tillsammans med symtom,
-        aktivitet, ordinationer och klinisk kontext.
+        Förhöjd nivå visas 20 bpm under den valda akutgränsen. Demoindikering – inte ett
+        medicintekniskt larm. Bedöm puls tillsammans med symtom, aktivitet, ordinationer och
+        klinisk kontext.
       </p>
     </div>
   );
