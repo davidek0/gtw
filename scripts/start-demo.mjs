@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const npm = "npm";
 const useShell = process.platform === "win32";
 const sharedEnv = {
   ...process.env,
@@ -15,26 +14,76 @@ const sharedEnv = {
   ...readEnvFile(path.join(root, "backend", ".env")),
 };
 const processes = [
-  { name: "backend", cwd: path.join(root, "backend"), args: ["run", "dev"] },
-  { name: "frontend", cwd: path.join(root, "frontend"), args: ["run", "dev"] },
+  {
+    name: "backend",
+    command: "npm",
+    cwd: path.join(root, "backend"),
+    args: ["run", "dev"],
+  },
+  {
+    name: "frontend",
+    command: "npm",
+    cwd: path.join(root, "frontend"),
+    args: ["run", "dev"],
+  },
   {
     name: "garmin-live",
+    command: "npm",
     cwd: path.join(root, "backend"),
     args: ["run", "garmin:live:monitor"],
+  },
+  {
+    name: "llm-proxy",
+    command: "uv",
+    cwd: path.join(root, "backend", "conversation"),
+    // LiteLLM must remain stateless for this demo, even though the main backend
+    // has a DATABASE_URL for Garmin/Drizzle.
+    env: { PYTHON_DOTENV_DISABLED: "1" },
+    omitEnv: ["DATABASE_URL"],
+    args: [
+      "run",
+      "litellm",
+      "--config",
+      "litellm/config.yaml",
+      "--port",
+      "4000",
+    ],
+  },
+  {
+    name: "voice",
+    command: "uv",
+    cwd: path.join(root, "backend", "conversation"),
+    args: [
+      "run",
+      "python",
+      "-m",
+      "gtw.web_voice",
+      "-t",
+      "webrtc",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "7860",
+    ],
   },
 ];
 
 let stopping = false;
 const children = [];
 
-function startProcess({ name, cwd, args }, oneShot = false) {
+function startProcess(
+  { name, command: executable, cwd, args, env = {}, omitEnv = [] },
+  oneShot = false,
+) {
   // Node 25 on Windows requires .cmd files to run through a shell. Every
   // command here is a fixed internal npm script, never user-provided input.
-  const command = useShell ? [npm, ...args].join(" ") : npm;
+  const command = useShell ? [executable, ...args].join(" ") : executable;
   const commandArgs = useShell ? [] : args;
+  const processEnv = { ...sharedEnv, ...env };
+  for (const name of omitEnv) delete processEnv[name];
   const child = spawn(command, commandArgs, {
     cwd,
-    env: sharedEnv,
+    env: processEnv,
     stdio: "inherit",
     shell: useShell,
   });
@@ -74,7 +123,7 @@ process.on("SIGINT", () => shutdown());
 process.on("SIGTERM", () => shutdown());
 
 console.log(
-  "GTW demo running: frontend, backend, continuous Garmin pulse, and one startup cloud sync.",
+  "GTW demo running: frontend, backend, browser voice chat, continuous Garmin pulse, and one startup cloud sync.",
 );
 
 async function syncGarminAfterBackendStarts() {
@@ -92,6 +141,7 @@ async function syncGarminAfterBackendStarts() {
         startProcess(
           {
             name: "garmin-sync",
+            command: "npm",
             cwd: path.join(root, "backend"),
             args: ["run", "garmin:sync"],
           },

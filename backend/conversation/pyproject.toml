@@ -7,8 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "nvidia-cublas-cu12>=12.9.2.10 ; sys_platform == 'linux'",
     "nvidia-cudnn-cu12>=9,<10 ; sys_platform == 'linux'",
-    "openai>=3.19.2",
-    "pipecat-ai[local,piper,whisper]>=1.12.0",
+    "litellm[proxy]>=1.84,<2",
+    "openai>=2.20,<3",
+    "pipecat-ai[local,piper,runner,webrtc,whisper]>=1.12.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "supabase>=2.31.0",

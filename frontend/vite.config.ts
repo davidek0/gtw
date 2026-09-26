@@ -31,6 +31,14 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    resolve: {
+      // Pipecat imports Node's EventEmitter name, but its browser SDK expects
+      // the npm browser polyfill. Without the alias Vite externalizes it.
+      alias: {
+        events: path.resolve("node_modules/events/events.js"),
+        "node:events": path.resolve("node_modules/events/events.js"),
+      },
+    },
     // The demo is edited while Vite is running for long periods. Rebuild
     // prebundled TanStack modules at startup so stale hashed imports cannot
     // leave the SSR HTML visible but prevent React from hydrating.

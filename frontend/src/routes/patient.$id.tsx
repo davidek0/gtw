@@ -4,12 +4,16 @@ import { LiveHeartRatePanel } from "@/components/LiveHeartRatePanel";
 import { PatientMetricGrid } from "@/components/PatientMetricGrid";
 import { statusLabel, type Status } from "@/lib/health-data";
 import { usePatients } from "@/lib/backend";
+import { useVoiceSummary } from "@/lib/voice-summary";
 
 export const Route = createFileRoute("/patient/$id")({
   head: () => ({
     meta: [
       { title: "Patientöversikt — Pulsefold Clinical" },
-      { name: "description", content: "Klinisk analys och vald akut livedata för patienten." },
+      {
+        name: "description",
+        content: "Klinisk analys och vald akut livedata för patienten.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -27,8 +31,13 @@ function PatientMissing() {
   return (
     <div className="grid min-h-screen place-items-center bg-mist px-6 text-center">
       <div>
-        <h1 className="font-display text-2xl font-medium">Patienten hittades inte</h1>
-        <Link to="/worklist" className="mt-3 inline-block text-sm font-semibold text-sage-deep underline">
+        <h1 className="font-display text-2xl font-medium">
+          Patienten hittades inte
+        </h1>
+        <Link
+          to="/worklist"
+          className="mt-3 inline-block text-sm font-semibold text-sage-deep underline"
+        >
           Tillbaka till patientlistan
         </Link>
       </div>
@@ -40,7 +49,10 @@ function PatientDetail() {
   const { id } = Route.useParams();
   const { patients } = usePatients();
   const patient = patients.find((candidate) => candidate.id === id);
-  const [liveMetric, setLiveMetric] = useState(id === "person-1" ? "heart-rate" : "none");
+  const [liveMetric, setLiveMetric] = useState(
+    id === "person-1" ? "heart-rate" : "none",
+  );
+  const voiceCheckin = useVoiceSummary(id);
 
   if (!patient) return <PatientMissing />;
 
@@ -50,13 +62,18 @@ function PatientDetail() {
   return (
     <section className="min-h-screen bg-mist">
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <Link to="/worklist" className="text-xs font-semibold text-ink/45 hover:text-ink">
+        <Link
+          to="/worklist"
+          className="text-xs font-semibold text-ink/45 hover:text-ink"
+        >
           ← Patientlista
         </Link>
 
         <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-4xl font-medium tracking-tight">{patient.name}</h1>
+            <h1 className="font-display text-4xl font-medium tracking-tight">
+              {patient.name}
+            </h1>
             <p className="mt-1 text-sm text-ink/55">
               {patient.age} år · {diagnoses.join(" · ")}
             </p>
@@ -76,13 +93,27 @@ function PatientDetail() {
             </h2>
           </div>
           <p className="mt-5 max-w-3xl font-display text-2xl font-medium leading-snug text-ink">
-            {patient.clinicalNote}
+            {voiceCheckin?.summary ?? patient.clinicalNote}
           </p>
+          {voiceCheckin?.endedAt && (
+            <p className="mt-3 text-xs font-semibold text-ink/40">
+              Senaste AI-incheckning{" "}
+              {new Intl.DateTimeFormat("sv-SE", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(new Date(voiceCheckin.endedAt))}
+            </p>
+          )}
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {patient.flags.map((flag) => (
-              <div key={flag.title} className="rounded-xl bg-mist/70 px-4 py-3 ring-1 ring-black/5">
+              <div
+                key={flag.title}
+                className="rounded-xl bg-mist/70 px-4 py-3 ring-1 ring-black/5"
+              >
                 <p className="text-sm font-semibold text-ink">{flag.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-ink/55">{flag.detail}</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink/55">
+                  {flag.detail}
+                </p>
               </div>
             ))}
           </div>
@@ -94,7 +125,9 @@ function PatientDetail() {
               <p className="text-xs font-semibold tracking-[0.16em] text-risk-deep uppercase">
                 Akut livedata
               </p>
-              <h2 className="mt-1 font-display text-2xl font-medium">Vald av ansvarig läkare</h2>
+              <h2 className="mt-1 font-display text-2xl font-medium">
+                Vald av ansvarig läkare
+              </h2>
             </div>
             <label className="text-xs font-semibold text-ink/55">
               Visa signal
@@ -116,8 +149,12 @@ function PatientDetail() {
           ) : (
             <div className="grid min-h-52 place-items-center rounded-2xl border border-dashed border-ink/15 bg-white/30 px-6 text-center">
               <div>
-                <p className="font-display text-xl font-medium text-ink/65">Ingen akut signal vald</p>
-                <p className="mt-1 text-sm text-ink/45">Välj en tillgänglig livedatakälla ovan.</p>
+                <p className="font-display text-xl font-medium text-ink/65">
+                  Ingen akut signal vald
+                </p>
+                <p className="mt-1 text-sm text-ink/45">
+                  Välj en tillgänglig livedatakälla ovan.
+                </p>
               </div>
             </div>
           )}

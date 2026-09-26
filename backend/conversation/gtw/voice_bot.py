@@ -36,6 +36,7 @@ from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.services.piper.tts import PiperTTSService
 from pipecat.services.whisper.stt import WhisperSTTService
 from pipecat.transcriptions.language import Language
+from pipecat.transports.base_transport import BaseTransport
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
 from pipecat.workers.runner import WorkerRunner
 
@@ -180,10 +181,14 @@ class CheckinProcessor(FrameProcessor):
             self._silence_task = None
 
 
-async def run_voice_checkin(dialogue: Dialogue) -> None:
+async def run_transport_checkin(
+    dialogue: Dialogue,
+    transport: BaseTransport,
+    *,
+    handle_sigint: bool = True,
+) -> None:
     settings = get_settings()
     preload_cuda_libraries()
-    transport = LocalAudioTransport(LocalAudioTransportParams(audio_in_enabled=True, audio_out_enabled=True))
     vad = VADProcessor(vad_analyzer=SileroVADAnalyzer(params=vad_params(settings)))
     stt = WhisperSTTService(
         device=settings.whisper_device,
@@ -206,7 +211,13 @@ async def run_voice_checkin(dialogue: Dialogue) -> None:
         log.info("Turn latency: %.0f ms from end of speech to first audio", seconds * 1000)
 
     worker = PipelineWorker(pipeline, observers=[latency], processor_unusable_policy=ProcessorUnusablePolicy.END)
-    runner = WorkerRunner()
+    if transport.__class__.__name__ == "SmallWebRTCTransport":
+
+        @transport.event_handler("on_client_disconnected")
+        async def on_client_disconnected(_transport, _client) -> None:
+            await worker.cancel(reason="Browser client disconnected")
+
+    runner = WorkerRunner(handle_sigint=handle_sigint)
     await runner.add_workers(worker)
 
     dialogue.set_device_state("ringing")
@@ -214,6 +225,11 @@ async def run_voice_checkin(dialogue: Dialogue) -> None:
         await runner.run()
     finally:
         await dialogue.close()
+
+
+async def run_voice_checkin(dialogue: Dialogue) -> None:
+    transport = LocalAudioTransport(LocalAudioTransportParams(audio_in_enabled=True, audio_out_enabled=True))
+    await run_transport_checkin(dialogue, transport)
 
 
 def main() -> None:
