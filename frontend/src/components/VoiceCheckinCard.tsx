@@ -32,6 +32,7 @@ export function VoiceCheckinCard({
   patientName: string;
 }) {
   const clientRef = useRef<PipecatClient | null>(null);
+  const botAudioRef = useRef<HTMLAudioElement | null>(null);
   const resultTokenRef = useRef<string | null>(null);
   const collectingRef = useRef<string | null>(null);
   const failedRef = useRef(false);
@@ -40,6 +41,7 @@ export function VoiceCheckinCard({
   const [lastHeard, setLastHeard] = useState("");
   const [lastReply, setLastReply] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [playbackBlocked, setPlaybackBlocked] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -49,6 +51,7 @@ export function VoiceCheckinCard({
       const client = clientRef.current;
       clientRef.current = null;
       if (client?.connected) void client.disconnect();
+      if (botAudioRef.current) botAudioRef.current.srcObject = null;
     };
   }, []);
 
@@ -59,6 +62,7 @@ export function VoiceCheckinCard({
     failedRef.current = false;
     setLastHeard("");
     setLastReply("");
+    setPlaybackBlocked(false);
     const resultToken = crypto.randomUUID();
     resultTokenRef.current = resultToken;
 
@@ -82,6 +86,19 @@ export function VoiceCheckinCard({
           onUserStoppedSpeaking: () => setState("listening"),
           onBotStartedSpeaking: () => setState("ai-speaking"),
           onBotStoppedSpeaking: () => setState("listening"),
+          onTrackStarted: (track) => {
+            if (track.kind === "audio") void playBotAudio(track);
+          },
+          onTrackStopped: (track) => {
+            const stream = botAudioRef.current?.srcObject;
+            if (
+              track.kind === "audio" &&
+              stream instanceof MediaStream &&
+              stream.getTracks().includes(track)
+            ) {
+              botAudioRef.current.srcObject = null;
+            }
+          },
           onUserTranscript: (data: TranscriptData) => {
             if (data.final) setLastHeard(data.text);
           },
@@ -130,6 +147,20 @@ export function VoiceCheckinCard({
     if (client?.connected) void client.disconnect();
     setError(message);
     setState("error");
+  }
+
+  async function playBotAudio(track?: MediaStreamTrack) {
+    const audio = botAudioRef.current;
+    if (!audio) return;
+    if (track) audio.srcObject = new MediaStream([track]);
+    audio.muted = false;
+    audio.volume = 1;
+    try {
+      await audio.play();
+      if (mountedRef.current) setPlaybackBlocked(false);
+    } catch {
+      if (mountedRef.current) setPlaybackBlocked(true);
+    }
   }
 
   async function collectSummary(resultToken: string) {
@@ -193,6 +224,7 @@ export function VoiceCheckinCard({
 
   return (
     <section className="mt-8 rounded-2xl border border-sage/25 bg-sage/10 p-6 shadow-[var(--shadow-panel)] backdrop-blur-xl ring-1 ring-black/5">
+      <audio ref={botAudioRef} autoPlay playsInline className="hidden" />
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
           <p className="text-xs font-semibold tracking-[0.16em] text-sage-deep uppercase">
@@ -255,6 +287,15 @@ export function VoiceCheckinCard({
       )}
       {error && (
         <p className="mt-3 text-sm font-semibold text-risk-deep">{error}</p>
+      )}
+      {playbackBlocked && (
+        <button
+          type="button"
+          onClick={() => void playBotAudio()}
+          className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+        >
+          Slå på AI-ljud
+        </button>
       )}
     </section>
   );
