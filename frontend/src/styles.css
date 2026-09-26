@@ -1,0 +1,155 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Pulsefold design system — "Frosted Pulse"
+ * Calm sage/mist palette, Fraunces display + Hanken Grotesk body,
+ * frosted glass panels. All colors are oklch semantic tokens.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand tokens */
+  --color-ink: var(--ink);
+  --color-mist: var(--mist);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-amber: var(--amber);
+  --color-amber-deep: var(--amber-deep);
+  --color-risk: var(--risk);
+  --color-risk-deep: var(--risk-deep);
+  --color-risk-tint: var(--risk-tint);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  --ink: oklch(0.23 0.021 172);
+  --mist: oklch(0.945 0.013 160);
+  --sage: oklch(0.475 0.049 166);
+  --sage-deep: oklch(0.375 0.044 166);
+  --amber: oklch(0.685 0.116 68);
+  --amber-deep: oklch(0.475 0.088 70);
+  --risk: oklch(0.525 0.138 35);
+  --risk-deep: oklch(0.415 0.115 35);
+  --risk-tint: oklch(0.965 0.017 40);
+
+  --background: var(--mist);
+  --foreground: var(--ink);
+  --card: oklch(1 0 0 / 60%);
+  --card-foreground: var(--ink);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink);
+  --primary: var(--sage-deep);
+  --primary-foreground: oklch(0.985 0.005 160);
+  --secondary: oklch(1 0 0 / 70%);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.925 0.014 160);
+  --muted-foreground: oklch(0.47 0.016 170);
+  --accent: var(--amber);
+  --accent-foreground: var(--ink);
+  --destructive: var(--risk);
+  --destructive-foreground: oklch(0.985 0.005 160);
+  --border: oklch(0.23 0.021 172 / 10%);
+  --input: oklch(0.23 0.021 172 / 12%);
+  --ring: var(--sage);
+
+  --shadow-glass: 0 20px 60px -30px oklch(0.23 0.021 172 / 0.4);
+  --shadow-panel: 0 14px 40px -30px oklch(0.23 0.021 172 / 0.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility glass-panel {
+  border: 1px solid oklch(1 0 0 / 60%);
+  background-color: oklch(1 0 0 / 60%);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-panel);
+  border-radius: var(--radius);
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fillup {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseOnce {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+}
+
+.draw-line {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: draw 1.8s ease forwards;
+}
+
+.fade-fill {
+  opacity: 0;
+  animation: fillup 1.8s ease forwards;
+}
+
+.pulse-once {
+  animation: pulseOnce 1.4s ease 1;
+}
