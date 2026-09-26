@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { usePatients, sendFeeling } from "@/lib/backend";
+import { usePatients } from "@/lib/backend";
+import { PatientMetricGrid } from "@/components/PatientMetricGrid";
 import { SourceBadge } from "@/components/SourceBadge";
-import { TrendChart } from "@/components/TrendChart";
-import { formatValue } from "@/lib/health-data";
 
 export const Route = createFileRoute("/overview")({
   head: () => ({
@@ -29,20 +27,6 @@ export const Route = createFileRoute("/overview")({
 function PatientOverview() {
   const { patients, source, error } = usePatients();
   const patient = patients[0];
-  const [myScore, setMyScore] = useState<number | null>(null);
-  const [sent, setSent] = useState<string | null>(null);
-  const score = myScore ?? patient?.feelingScore ?? 0;
-
-  async function rate(n: number) {
-    setMyScore(n);
-    if (source !== "backend") return setSent("Not connected — not sent");
-    try {
-      await sendFeeling(patient!.id, n);
-      setSent("Sent to your laptop");
-    } catch {
-      setSent("Couldn't reach your laptop");
-    }
-  }
 
   if (!patient) {
     return (
@@ -56,9 +40,6 @@ function PatientOverview() {
       </section>
     );
   }
-
-  const cards = patient.metrics.filter((m) => m.key !== "feeling");
-  const feeling = patient.metrics.find((m) => m.key === "feeling")!;
 
   return (
     <section className="relative min-h-screen bg-mist">
@@ -84,65 +65,7 @@ function PatientOverview() {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {cards.map((m, i) => (
-            <div
-              key={m.key}
-              className="rounded-xl border border-white/60 bg-white/60 p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl ring-1 ring-black/5 transition-transform hover:-translate-y-1"
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="text-xs font-semibold tracking-[0.12em] text-ink/50 uppercase">
-                  {m.label}
-                </span>
-                <span className="font-display text-2xl font-semibold text-ink">
-                  {formatValue(m)}
-                  {m.key === "rhr" || m.key === "hrv" ? (
-                    <span className="ml-1 text-xs font-medium text-ink/40">{m.unit}</span>
-                  ) : null}
-                </span>
-              </div>
-              <div className="relative mt-3 h-20">
-                <TrendChart values={m.values} area={m.key === "hrv"} delay={i * 120} />
-              </div>
-              <p className="mt-3 text-sm text-ink/70 text-pretty">{m.patientNote}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 rounded-xl border border-sage/20 bg-sage/10 p-5 backdrop-blur-xl ring-1 ring-black/5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-semibold tracking-[0.12em] text-sage-deep uppercase">
-                How do you feel?
-              </span>
-              <p className="mt-1 font-display text-xl font-medium text-ink">
-                &ldquo;{patient.feelingQuote}&rdquo;
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-label={`Feeling ${n} of 5`}
-                  onClick={() => rate(n)}
-                  className="grid size-7 place-items-center"
-                >
-                  <span className={`size-3 rounded-full ${n <= score ? "bg-sage" : "bg-sage/30"}`} />
-                </button>
-              ))}
-              <span className="ml-2 font-display text-lg font-semibold text-sage-deep">
-                {score}/5
-              </span>
-            </div>
-          </div>
-          <div className="relative mt-4 h-16">
-            <TrendChart values={feeling.values} tone="text-sage" area delay={480} />
-          </div>
-          <p className="mt-2 text-sm text-sage-deep/80 text-pretty">{feeling.patientNote}</p>
-          {sent && <p className="mt-1 text-xs font-semibold text-sage-deep">{sent}</p>}
-        </div>
-
+        <PatientMetricGrid patient={patient} />
       </div>
     </section>
   );

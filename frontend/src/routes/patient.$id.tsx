@@ -72,7 +72,7 @@ function PatientDetail() {
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-sage" />
             <h2 className="text-xs font-semibold tracking-[0.16em] text-sage-deep uppercase">
-              Vår analys av data
+              Kundens mående
             </h2>
           </div>
           <p className="mt-5 max-w-3xl font-display text-2xl font-medium leading-snug text-ink">
