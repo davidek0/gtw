@@ -1,0 +1,241 @@
+{
+  "id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+  "patient_id": "00000000-0000-4000-8000-000000000001",
+  "started_at": "2026-09-26T09:59:52.109531+00:00",
+  "ended_at": "2026-09-26T10:00:03.670602+00:00",
+  "status": "completed",
+  "respondent": "proxy",
+  "summary": "Så Karin mår sämre än igår, är tröttare eller mer förvirrad, har ätit eller druckit mindre och behöver mer hjälp att ta sig runt, men annars är allt som vanligt. Och du vill att sjuksköterskan ska veta: Hon har sovit dåligt och verkar lite ledsen. Kan någon ringa mig i eftermiddag.",
+  "transcript": [
+    {
+      "role": "assistant",
+      "text": "God morgon Karin, har du en stund att prata?",
+      "ts": "2026-09-26T09:59:52.109549Z"
+    },
+    {
+      "role": "user",
+      "text": "Hej, det är Anna, hennes dotter.",
+      "ts": "2026-09-26T09:59:52.110572Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Jag förstår.",
+      "ts": "2026-09-26T09:59:52.112218Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Hur verkar Karin må idag jämfört med igår – bättre, samma eller sämre?",
+      "ts": "2026-09-26T09:59:54.034806Z"
+    },
+    {
+      "role": "user",
+      "text": "Hon verkar mer förvirrad idag och har knappt druckit något.",
+      "ts": "2026-09-26T09:59:54.035202Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Ja, okej.",
+      "ts": "2026-09-26T09:59:54.038892Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Det låter jobbigt att hon är mer förvirrad idag. Skulle du säga att hon mår bättre, sämre eller ungefär likadant som igår?",
+      "ts": "2026-09-26T09:59:56.042124Z"
+    },
+    {
+      "role": "user",
+      "text": "Sämre, tycker jag.",
+      "ts": "2026-09-26T09:59:56.042534Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Okej.",
+      "ts": "2026-09-26T09:59:56.043135Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Det låter jobbigt att hon mår sämre idag. Andas Karin tyngre än vanligt?",
+      "ts": "2026-09-26T09:59:57.506821Z"
+    },
+    {
+      "role": "user",
+      "text": "Nej, andningen är som vanligt.",
+      "ts": "2026-09-26T09:59:57.507264Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Jag förstår.",
+      "ts": "2026-09-26T09:59:57.508612Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Har Karin ramlat eller behövt mer hjälp än vanligt med att röra sig eller gå på toaletten?",
+      "ts": "2026-09-26T09:59:58.666599Z"
+    },
+    {
+      "role": "user",
+      "text": "Nej, hon har inte ramlat, men hon behöver mer hjälp att gå på toaletten.",
+      "ts": "2026-09-26T09:59:58.666966Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Ja, okej.",
+      "ts": "2026-09-26T09:59:58.671909Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Verkar Karin ha ont?",
+      "ts": "2026-09-26T09:59:59.750209Z"
+    },
+    {
+      "role": "user",
+      "text": "Nej, inte vad jag märkt.",
+      "ts": "2026-09-26T09:59:59.750612Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Okej.",
+      "ts": "2026-09-26T09:59:59.751646Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Har Karin tagit sina mediciner som vanligt?",
+      "ts": "2026-09-26T10:00:00.878266Z"
+    },
+    {
+      "role": "user",
+      "text": "Ja, jag gav henne dem i morse.",
+      "ts": "2026-09-26T10:00:00.878721Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Jag förstår.",
+      "ts": "2026-09-26T10:00:00.880542Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Är det något mer du vill att sjuksköterskan ska veta om Karin?",
+      "ts": "2026-09-26T10:00:01.910580Z"
+    },
+    {
+      "role": "user",
+      "text": "Hon har sovit dåligt och verkar lite ledsen. Kan någon ringa mig i eftermiddag?",
+      "ts": "2026-09-26T10:00:01.910949Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Ja, okej.",
+      "ts": "2026-09-26T10:00:01.916077Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Så Karin mår sämre än igår, är tröttare eller mer förvirrad, har ätit eller druckit mindre och behöver mer hjälp att ta sig runt, men annars är allt som vanligt. Och du vill att sjuksköterskan ska veta: Hon har sovit dåligt och verkar lite ledsen. Kan någon ringa mig i eftermiddag. Stämmer det?",
+      "ts": "2026-09-26T10:00:03.163165Z"
+    },
+    {
+      "role": "user",
+      "text": "Ja, det stämmer.",
+      "ts": "2026-09-26T10:00:03.163878Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Okej.",
+      "ts": "2026-09-26T10:00:03.164427Z"
+    },
+    {
+      "role": "assistant",
+      "text": "Tack för att du tog dig tid. Jag skickar det här till sjuksköterskan. Ha en fin dag!",
+      "ts": "2026-09-26T10:00:03.670572Z"
+    }
+  ],
+  "fields": [
+    {
+      "id": "ef94086e-48fd-4d83-9580-ae2c57b24d1d",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "respondent",
+      "value": "proxy",
+      "status": "complete",
+      "evidence": "Hej, det är Anna, hennes dotter.",
+      "attempts": 0
+    },
+    {
+      "id": "3b0cfdb4-90b3-4dd1-a0e1-4c573ac10e7e",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "trend",
+      "value": "worse",
+      "status": "complete",
+      "evidence": "Sämre, tycker jag.",
+      "attempts": 2
+    },
+    {
+      "id": "d2c1a4cd-0e94-45ea-a1ff-4ed136a75018",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "breathing",
+      "value": "same",
+      "status": "complete",
+      "evidence": "andningen är som vanligt",
+      "attempts": 1
+    },
+    {
+      "id": "dad7e076-7803-4013-a985-34577e211285",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "confusion",
+      "value": true,
+      "status": "complete",
+      "evidence": "mer förvirrad idag",
+      "attempts": 0
+    },
+    {
+      "id": "49a4da39-e7f7-444a-a1a0-ae28a1142486",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "intake",
+      "value": "less",
+      "status": "complete",
+      "evidence": "knappt druckit något",
+      "attempts": 0
+    },
+    {
+      "id": "71d4011b-7560-4107-8cb7-6dfe96ed6caf",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "mobility",
+      "value": {
+        "fell": false,
+        "more_help": true
+      },
+      "status": "complete",
+      "evidence": "hon har inte ramlat, men hon behöver mer hjälp att gå på toaletten",
+      "attempts": 1
+    },
+    {
+      "id": "5d95a624-9916-4bfc-9f53-d9e687d4abc2",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "pain",
+      "value": {
+        "new_or_worse": false,
+        "score_0_10": null
+      },
+      "status": "complete",
+      "evidence": "Nej, inte vad jag märkt.",
+      "attempts": 1
+    },
+    {
+      "id": "351ab393-cfad-4bea-bb63-7f2f54f467fd",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "medications",
+      "value": "taken",
+      "status": "complete",
+      "evidence": "Ja, jag gav henne dem i morse.",
+      "attempts": 1
+    },
+    {
+      "id": "8ac370d3-45d6-4881-b1bf-1fe7536b6986",
+      "checkin_id": "e54b3678-6072-45cb-8191-1ae819e945b0",
+      "field": "other",
+      "value": "Hon har sovit dåligt och verkar lite ledsen. Kan någon ringa mig i eftermiddag?",
+      "status": "complete",
+      "evidence": "Hon har sovit dåligt och verkar lite ledsen. Kan någon ringa mig i eftermiddag?",
+      "attempts": 1
+    }
+  ],
+  "alerts": []
+}

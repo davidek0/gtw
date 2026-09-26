@@ -1,0 +1,50 @@
+# Run with: (set -a; source .env; uvx --from 'litellm[proxy]' litellm --config litellm/config.yaml --port 4000)
+#
+# The agent only calls model "gtw". On any failure (429, 5xx, auth, timeout) the router walks the
+# fallback chain without retrying the failing deployment in place:
+#   DeepSeek on broker B -> DeepSeek on broker A -> MiniMax on B -> MiniMax on A.
+# Broker B is primary because it was the more reliable one in scripts/bench_llm.py.
+#
+# DeepSeek runs with reasoning off (chat_template_kwargs), which cuts extraction from ~3.5 s to ~1.5 s.
+# MiniMax cannot turn reasoning off, so it is only a slow last resort with longer timeouts.
+# Timeouts are per attempt; for streams they bound the wait for each chunk.
+
+model_list:
+  - model_name: gtw
+    litellm_params: &deepseek
+      model: openai/deepseek-ai/DeepSeek-V4-Flash-0731
+      api_base: os.environ/BROKER_B_API_BASE
+      api_key: os.environ/BROKER_B_API_KEY
+      extra_body:
+        chat_template_kwargs:
+          thinking: false
+      timeout: 4
+      stream_timeout: 3
+
+  - model_name: gtw-secondary
+    litellm_params:
+      <<: *deepseek
+      api_base: os.environ/BROKER_A_API_BASE
+      api_key: os.environ/BROKER_A_API_KEY
+
+  - model_name: gtw-fallback
+    litellm_params: &minimax
+      model: openai/MiniMaxAI/MiniMax-M2.7
+      api_base: os.environ/BROKER_B_API_BASE
+      api_key: os.environ/BROKER_B_API_KEY
+      timeout: 10
+      stream_timeout: 8
+
+  - model_name: gtw-fallback-secondary
+    litellm_params:
+      <<: *minimax
+      api_base: os.environ/BROKER_A_API_BASE
+      api_key: os.environ/BROKER_A_API_KEY
+
+router_settings:
+  num_retries: 0
+  fallbacks:
+    - gtw: [gtw-secondary, gtw-fallback, gtw-fallback-secondary]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
