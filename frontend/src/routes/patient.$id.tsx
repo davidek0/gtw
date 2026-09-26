@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { LiveHeartRatePanel } from "@/components/LiveHeartRatePanel";
+import { PatientMetricGrid } from "@/components/PatientMetricGrid";
 import { statusLabel, type Status } from "@/lib/health-data";
 import { usePatients } from "@/lib/backend";
 
@@ -121,6 +122,8 @@ function PatientDetail() {
             </div>
           )}
         </section>
+
+        <PatientMetricGrid patient={patient} />
       </div>
     </section>
   );

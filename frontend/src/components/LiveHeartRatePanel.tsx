@@ -1,16 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { loadGarminLiveHeartRate, type HeartRateSample } from "@/lib/garmin-data";
 import { TrendChart } from "./TrendChart";
-
-type HeartRateSample = {
-  id: string;
-  bpm: number;
-  measuredAt: string;
-  sourceDevice: string | null;
-};
-
-const backendUrl =
-  (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/+$/, "") ||
-  "http://127.0.0.1:3000";
 
 const DEFAULT_DANGER_THRESHOLD = 120;
 
@@ -35,11 +25,7 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
 
     async function refresh() {
       try {
-        const response = await fetch(`${backendUrl}/api/garmin-live/heart-rate?limit=90`, {
-          cache: "no-store",
-        });
-        if (!response.ok) throw new Error(`Backend svarade ${response.status}`);
-        const data = (await response.json()) as HeartRateSample[];
+        const data = await loadGarminLiveHeartRate();
         if (active) {
           setSamples(Array.isArray(data) ? [...data].reverse() : []);
           setError(null);
