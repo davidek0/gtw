@@ -106,6 +106,7 @@ def interactive_login() -> Any:
 def collect_day(client: Any, day: str) -> list[dict[str, Any]]:
     calls: list[tuple[str, Callable[[], Any]]] = [
         ("daily_summary", lambda: client.get_user_summary(day)),
+        ("steps", lambda: client.get_steps_data(day)),
         ("heart_rate", lambda: client.get_heart_rates(day)),
         ("sleep", lambda: client.get_sleep_data(day)),
         ("stress", lambda: client.get_stress_data(day)),

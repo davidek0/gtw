@@ -133,14 +133,22 @@ To keep checking Garmin at the configured interval:
 npm run garmin:poll
 ```
 
-The poller fetches daily summary, heart rate, sleep, stress, Body Battery, HRV,
-SpO2, and respiration when available. Unsupported metrics are skipped. Repeated
-runs update the same person/date/metric row instead of creating duplicates.
+The poller fetches daily summary, step samples, heart rate, sleep, stress, Body
+Battery, HRV, SpO2, and respiration when available. Unsupported metrics are
+skipped. Repeated runs update the same person/date/metric row instead of creating
+duplicates.
 
 Read the saved data through the protected endpoint:
 
 ```http
 GET /api/garmin-connect/person-1/health?type=sleep&limit=100
+Authorization: Bearer <ADMIN_API_TOKEN>
+```
+
+Use `type=steps` to read the dedicated step samples:
+
+```http
+GET /api/garmin-connect/person-1/health?type=steps&limit=30
 Authorization: Bearer <ADMIN_API_TOKEN>
 ```
 
