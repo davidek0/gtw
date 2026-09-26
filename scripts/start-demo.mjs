@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const npm = "npm";
+const useShell = process.platform === "win32";
 const sharedEnv = {
   ...readEnvFile(path.join(root, "backend", ".env")),
   ...process.env,
@@ -23,10 +24,15 @@ let stopping = false;
 const children = [];
 
 function startProcess({ name, cwd, args }, oneShot = false) {
-  const child = spawn(npm, args, {
+  // Node 25 on Windows requires .cmd files to run through a shell. Every
+  // command here is a fixed internal npm script, never user-provided input.
+  const command = useShell ? [npm, ...args].join(" ") : npm;
+  const commandArgs = useShell ? [] : args;
+  const child = spawn(command, commandArgs, {
     cwd,
     env: sharedEnv,
     stdio: "inherit",
+    shell: useShell,
   });
 
   child.on("error", (error) => {
