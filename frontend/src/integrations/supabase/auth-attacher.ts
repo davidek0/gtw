@@ -6,6 +6,16 @@ import { supabase } from './client'
 // the browser never attaches the bearer token to serverFn RPCs.
 export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
   async ({ next }) => {
+    // Login is intentionally disabled in the local demo. Avoid constructing a
+    // Supabase browser client when its public configuration is absent; doing so
+    // would throw before otherwise protected server functions can be called.
+    if (
+      !import.meta.env['VITE_SUPABASE_URL'] ||
+      !import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY']
+    ) {
+      return next()
+    }
+
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
     return next({
