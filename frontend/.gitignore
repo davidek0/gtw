@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.output/
+.tanstack/
+.wrangler/
+.env
+.env.*
+!.env.example
+*.log
