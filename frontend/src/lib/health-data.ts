@@ -27,6 +27,7 @@ export type Patient = {
   age: number;
   sex: "F" | "M";
   condition: string;
+  diagnoses?: string[];
   status: Status;
   streak: number;
   headline: string;
@@ -39,9 +40,9 @@ export type Patient = {
 };
 
 export const statusLabel: Record<Status, string> = {
-  stable: "Stable",
-  watch: "Watch",
-  risk: "At risk",
+  stable: "Stabil",
+  watch: "Bevaka",
+  risk: "Hög risk",
 };
 
 export function latest(m: Metric): number {

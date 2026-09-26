@@ -15,7 +15,8 @@
     "garmin:sync": "uv run --python 3.12 --with garminconnect==0.3.16 python scripts/garmin_connect_sync.py sync",
     "garmin:poll": "uv run --python 3.12 --with garminconnect==0.3.16 python scripts/garmin_connect_sync.py poll",
     "garmin:live:scan": "uv run --python 3.12 --with bleak==3.0.2 python scripts/garmin_live_hr.py scan",
-    "garmin:live:test": "uv run --python 3.12 --with bleak==3.0.2 python scripts/garmin_live_hr.py test"
+    "garmin:live:test": "uv run --python 3.12 --with bleak==3.0.2 python scripts/garmin_live_hr.py test",
+    "garmin:live:monitor": "uv run --python 3.12 --with bleak==3.0.2 python scripts/garmin_live_hr.py monitor"
   },
   "dependencies": {
     "dotenv": "^18.0.4",

@@ -120,6 +120,43 @@ function metrics(status: Status, ends: MetricEnds): Metric[] {
 
 export const mockPatients: Patient[] = [
   {
+    id: "person-1",
+    email: "artur@example.com",
+    name: "Artur Rekstad",
+    firstName: "Artur",
+    age: 67,
+    sex: "M",
+    condition: "Förmaksflimmer och hypertoni",
+    diagnoses: ["Förmaksflimmer", "Hypertoni"],
+    status: "watch",
+    streak: 9,
+    headline: "Pulsen följs i realtid.",
+    subhead: "Garmin-sändningen visas direkt i klinikvyn när monitorn är ansluten.",
+    feelingQuote: "Känner mig okej men lite trött",
+    feelingScore: 3,
+    flags: [
+      {
+        level: "watch",
+        title: "Puls vald för akut monitorering",
+        detail: "Livedata jämförs med de lokalt valda demo-gränserna 100 och 120 bpm.",
+      },
+      {
+        level: "stable",
+        title: "Ingen ihållande akut signal i sparad data",
+        detail: "Bedöm alltid aktuell puls tillsammans med symtom och klinisk kontext.",
+      },
+    ],
+    clinicalNote:
+      "Arturs puls är vald som akut livedata. Systemet markerar förhöjd nivå från 100 bpm och akut varning från 120 bpm. Gränserna är demospecifika och ersätter inte klinisk bedömning.",
+    metrics: metrics("watch", {
+      rhr: [68, 76],
+      sleep: [7.1, 6.4],
+      steps: [6.9, 5.8],
+      hrv: [41, 34],
+      feeling: [3.8, 3.1],
+    }),
+  },
+  {
     id: "amelia-berg",
     email: "amelia@example.com",
     name: "Amelia Berg",

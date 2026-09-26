@@ -209,3 +209,13 @@ npm run garmin:live:test -- --baseline 30 --exercise 60 --recovery 60
 This test is a software demonstration, not medical monitoring. Optical wrist
 heart rate can lag during rapid movement and can produce missing or inaccurate
 values.
+
+For the clinician dashboard, keep the live stream running until you stop it:
+
+```powershell
+npm run garmin:live:monitor -- 14:13:0B:17:A0:32
+```
+
+The dashboard polls the latest uploaded samples and marks the feed as offline
+when no fresh sample has arrived. This local hackathon alert is a configurable
+demo indicator, not a medical-device alarm.

@@ -184,6 +184,56 @@ async def flush_samples(
         print(f"Warning: {exc}", file=sys.stderr)
 
 
+async def monitor_command(args: argparse.Namespace) -> None:
+    """Stream heart rate until stopped, reconnecting whenever Bluetooth drops."""
+    BleakClient, _ = bleak_library()
+    subject_id = os.getenv("GARMIN_SUBJECT_ID", "person-1").strip()
+    if not args.no_upload and not os.getenv("ADMIN_API_TOKEN", "").strip():
+        raise SystemExit("Fill ADMIN_API_TOKEN in backend/.env before starting the monitor.")
+
+    pending: list[dict[str, Any]] = []
+    print("Continuous live pulse monitor started. Press Ctrl+C to stop.")
+
+    while True:
+        try:
+            target, label = await select_device(args.address, args.scan_timeout)
+            queue: asyncio.Queue[tuple[int, str]] = asyncio.Queue()
+
+            def on_heart_rate(_sender: Any, data: bytearray) -> None:
+                try:
+                    bpm = parse_bpm(data)
+                except ValueError as exc:
+                    print(f"Warning: {exc}", file=sys.stderr)
+                    return
+                measured_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+                queue.put_nowait((bpm, measured_at))
+
+            print(f"Connecting to {label}...")
+            async with BleakClient(target, timeout=20) as client:
+                await client.start_notify(HEART_RATE_MEASUREMENT, on_heart_rate)
+                print("Live pulse connected.")
+                try:
+                    while True:
+                        bpm, measured_at = await asyncio.wait_for(queue.get(), timeout=20)
+                        print(f"{measured_at}  {bpm:3d} bpm")
+                        pending.append({"bpm": bpm, "measuredAt": measured_at})
+                        if not args.no_upload and len(pending) >= 3:
+                            await flush_samples(subject_id, label, pending)
+                finally:
+                    try:
+                        await client.stop_notify(HEART_RATE_MEASUREMENT)
+                    except Exception:
+                        pass
+                if not args.no_upload:
+                    await flush_samples(subject_id, label, pending)
+        except (Exception, SystemExit) as exc:
+            print(
+                f"Live pulse disconnected: {exc}. Retrying in {args.retry_interval} seconds...",
+                file=sys.stderr,
+            )
+            await asyncio.sleep(args.retry_interval)
+
+
 async def test_command(args: argparse.Namespace) -> None:
     BleakClient, _ = bleak_library()
     target, label = await select_device(args.address, args.scan_timeout)
@@ -294,6 +344,13 @@ def build_parser() -> argparse.ArgumentParser:
     test.add_argument("--recovery", type=int, default=30, help="Recovery seconds.")
     test.add_argument("--rise-threshold", type=int, default=10)
     test.add_argument("--no-upload", action="store_true")
+
+    monitor = commands.add_parser("monitor", help="Stream and upload pulse until stopped.")
+    monitor.add_argument("device_address", nargs="?", help="Optional Bluetooth device address.")
+    monitor.add_argument("--address", dest="address_option", help="Bluetooth device address.")
+    monitor.add_argument("--scan-timeout", type=float, default=12.0)
+    monitor.add_argument("--retry-interval", type=int, default=5)
+    monitor.add_argument("--no-upload", action="store_true")
     return parser
 
 
@@ -309,10 +366,15 @@ async def async_main() -> None:
             or os.getenv("GARMIN_BLE_ADDRESS")
             or None
         )
-        for name in ("baseline", "exercise", "recovery"):
-            if getattr(args, name) < 5:
-                raise SystemExit(f"--{name} must be at least 5 seconds.")
-        await test_command(args)
+        if args.command == "test":
+            for name in ("baseline", "exercise", "recovery"):
+                if getattr(args, name) < 5:
+                    raise SystemExit(f"--{name} must be at least 5 seconds.")
+            await test_command(args)
+        else:
+            if args.retry_interval < 1:
+                raise SystemExit("--retry-interval must be at least 1 second.")
+            await monitor_command(args)
 
 
 if __name__ == "__main__":

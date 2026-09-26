@@ -28,6 +28,20 @@ export async function registerGarminLiveRoutes(app: FastifyInstance): Promise<vo
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 5000) : 300;
     return listLiveHeartRateSamples(validateSubjectId(subjectId), limit);
   });
+
+  // Read-only local dashboard feed. Writes and subject-specific history remain
+  // protected by ADMIN_API_TOKEN; this endpoint only exposes the configured demo subject.
+  app.get("/api/garmin-live/heart-rate", async (request, reply) => {
+    const query = isObject(request.query) ? request.query : {};
+    const requestedLimit = typeof query.limit === "string" ? Number.parseInt(query.limit, 10) : 90;
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 300) : 90;
+    const subjectId = process.env.GARMIN_SUBJECT_ID?.trim() || "person-1";
+
+    void reply
+      .header("Access-Control-Allow-Origin", "*")
+      .header("Cache-Control", "no-store");
+    return listLiveHeartRateSamples(subjectId, limit);
+  });
 }
 
 function validateSamples(value: unknown): LiveHeartRateSampleInput[] {
