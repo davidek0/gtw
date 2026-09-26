@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadGarminLiveHeartRate, type HeartRateSample } from "@/lib/garmin-data";
+import {
+  loadGarminLiveHeartRate,
+  type HeartRateSample,
+} from "@/lib/garmin-data";
 import { TrendChart } from "./TrendChart";
 
 const DEFAULT_DANGER_THRESHOLD = 120;
@@ -8,12 +11,18 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
   const [samples, setSamples] = useState<HeartRateSample[]>([]);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
-  const [dangerThreshold, setDangerThreshold] = useState(DEFAULT_DANGER_THRESHOLD);
-  const [thresholdInput, setThresholdInput] = useState(String(DEFAULT_DANGER_THRESHOLD));
+  const [dangerThreshold, setDangerThreshold] = useState(
+    DEFAULT_DANGER_THRESHOLD,
+  );
+  const [thresholdInput, setThresholdInput] = useState(
+    String(DEFAULT_DANGER_THRESHOLD),
+  );
   const [thresholdSaved, setThresholdSaved] = useState(false);
 
   useEffect(() => {
-    const saved = Number(window.localStorage.getItem(`pulsefold.pulse-danger.${patientId}`));
+    const saved = Number(
+      window.localStorage.getItem(`pulsefold.pulse-danger.${patientId}`),
+    );
     if (Number.isInteger(saved) && saved >= 60 && saved <= 220) {
       setDangerThreshold(saved);
       setThresholdInput(String(saved));
@@ -25,15 +34,20 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
 
     async function refresh() {
       try {
-        const data = await loadGarminLiveHeartRate();
+        const result = await loadGarminLiveHeartRate();
+        if (!result.ok) throw new Error(result.error);
         if (active) {
-          setSamples(Array.isArray(data) ? [...data].reverse() : []);
+          setSamples(
+            Array.isArray(result.data) ? [...result.data].reverse() : [],
+          );
           setError(null);
           setNow(Date.now());
         }
       } catch (cause) {
         if (active) {
-          setError(cause instanceof Error ? cause.message : "Kunde inte läsa livepuls");
+          setError(
+            cause instanceof Error ? cause.message : "Kunde inte läsa livepuls",
+          );
           setNow(Date.now());
         }
       }
@@ -51,7 +65,10 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
 
   const latest = samples[samples.length - 1];
   const ageSeconds = latest
-    ? Math.max(0, Math.floor((now - new Date(latest.measuredAt).getTime()) / 1_000))
+    ? Math.max(
+        0,
+        Math.floor((now - new Date(latest.measuredAt).getTime()) / 1_000),
+      )
     : null;
   const isLive = ageSeconds !== null && ageSeconds <= 15 && !error;
   const bpm = latest?.bpm;
@@ -74,7 +91,10 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
     const next = Math.min(Math.max(parsed, 60), 220);
     setDangerThreshold(next);
     setThresholdInput(String(next));
-    window.localStorage.setItem(`pulsefold.pulse-danger.${patientId}`, String(next));
+    window.localStorage.setItem(
+      `pulsefold.pulse-danger.${patientId}`,
+      String(next),
+    );
     setThresholdSaved(true);
   }
 
@@ -115,15 +135,21 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
   }, [samples]);
 
   return (
-    <div className={`rounded-2xl border p-6 ring-1 ring-black/5 ${presentation.panel}`}>
+    <div
+      className={`rounded-2xl border p-6 ring-1 ring-black/5 ${presentation.panel}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <div className={`flex items-center gap-2 text-xs font-semibold tracking-[0.14em] uppercase ${presentation.text}`}>
+          <div
+            className={`flex items-center gap-2 text-xs font-semibold tracking-[0.14em] uppercase ${presentation.text}`}
+          >
             <span className={`size-2 rounded-full ${presentation.dot}`} />
             {presentation.label}
           </div>
           <div className="mt-3 flex items-end gap-2">
-            <span className={`font-display text-6xl font-semibold leading-none ${presentation.text}`}>
+            <span
+              className={`font-display text-6xl font-semibold leading-none ${presentation.text}`}
+            >
               {bpm ?? "—"}
             </span>
             <span className="pb-1 text-sm font-semibold text-ink/45">bpm</span>
@@ -177,7 +203,9 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
           </span>
         </label>
         <div className="flex items-center gap-3">
-          {thresholdSaved && <span className="text-xs font-semibold text-sage-deep">Sparad</span>}
+          {thresholdSaved && (
+            <span className="text-xs font-semibold text-sage-deep">Sparad</span>
+          )}
           <button
             type="button"
             onClick={saveThreshold}
@@ -190,7 +218,12 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
 
       <div className="relative mt-6 h-32 rounded-xl bg-white/35 p-3 ring-1 ring-black/5">
         {values.length > 1 ? (
-          <TrendChart values={values} height={104} tone={presentation.chart} area />
+          <TrendChart
+            values={values}
+            height={104}
+            tone={presentation.chart}
+            area
+          />
         ) : (
           <div className="grid h-full place-items-center text-xs text-ink/35">
             Pulskurvan visas när nya värden kommer in
@@ -199,9 +232,9 @@ export function LiveHeartRatePanel({ patientId }: { patientId: string }) {
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-ink/50">
-        Förhöjd nivå visas 20 bpm under den valda akutgränsen. Demoindikering – inte ett
-        medicintekniskt larm. Bedöm puls tillsammans med symtom, aktivitet, ordinationer och
-        klinisk kontext.
+        Förhöjd nivå visas 20 bpm under den valda akutgränsen. Demoindikering –
+        inte ett medicintekniskt larm. Bedöm puls tillsammans med symtom,
+        aktivitet, ordinationer och klinisk kontext.
       </p>
     </div>
   );

@@ -7,8 +7,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const npm = "npm";
 const useShell = process.platform === "win32";
 const sharedEnv = {
-  ...readEnvFile(path.join(root, "backend", ".env")),
   ...process.env,
+  // The demo's checked-local backend configuration is the single source of
+  // truth for every child process. This prevents a stale/empty Windows user
+  // variable from making the frontend authenticate with another token than
+  // the backend and Garmin monitor.
+  ...readEnvFile(path.join(root, "backend", ".env")),
 };
 const processes = [
   { name: "backend", cwd: path.join(root, "backend"), args: ["run", "dev"] },
@@ -43,7 +47,10 @@ function startProcess({ name, cwd, args }, oneShot = false) {
     if (stopping) return;
     if (oneShot) {
       if (code === 0) console.log(`[${name}] completed.`);
-      else console.error(`[${name}] failed with code ${code}; the app remains running.`);
+      else
+        console.error(
+          `[${name}] failed with code ${code}; the app remains running.`,
+        );
     } else {
       console.error(`[${name}] stopped unexpectedly with code ${code}.`);
       shutdown(code || 1);
@@ -71,10 +78,15 @@ console.log(
 );
 
 async function syncGarminAfterBackendStarts() {
-  const backendUrl = (sharedEnv.BACKEND_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+  const backendUrl = (sharedEnv.BACKEND_URL || "http://127.0.0.1:3000").replace(
+    /\/+$/,
+    "",
+  );
   for (let attempt = 1; attempt <= 30 && !stopping; attempt += 1) {
     try {
-      const response = await fetch(`${backendUrl}/health`, { signal: AbortSignal.timeout(1_000) });
+      const response = await fetch(`${backendUrl}/health`, {
+        signal: AbortSignal.timeout(1_000),
+      });
       if (response.ok) {
         console.log("Backend ready. Starting one Garmin Cloud sync...");
         startProcess(
@@ -93,7 +105,9 @@ async function syncGarminAfterBackendStarts() {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!stopping) {
-    console.error("Backend did not become ready; startup Garmin sync was skipped.");
+    console.error(
+      "Backend did not become ready; startup Garmin sync was skipped.",
+    );
   }
 }
 
