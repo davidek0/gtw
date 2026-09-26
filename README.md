@@ -12,5 +12,7 @@ npm run dev
 ```
 
 This starts the frontend, backend, and continuous Garmin Bluetooth heart-rate
-monitor together. The monitor reconnects automatically if Bluetooth is briefly
-lost. Press `Ctrl+C` to stop the complete app.
+monitor together. As soon as the backend is ready, it also runs one Garmin Cloud
+sync for sleep, steps, pulse, HRV, and the other configured health metrics. The
+live monitor reconnects automatically if Bluetooth is briefly lost. Press
+`Ctrl+C` to stop the complete app.

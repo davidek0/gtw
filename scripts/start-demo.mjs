@@ -20,7 +20,9 @@ const processes = [
 ];
 
 let stopping = false;
-const children = processes.map(({ name, cwd, args }) => {
+const children = [];
+
+function startProcess({ name, cwd, args }, oneShot = false) {
   const child = spawn(npm, args, {
     cwd,
     env: sharedEnv,
@@ -29,15 +31,24 @@ const children = processes.map(({ name, cwd, args }) => {
 
   child.on("error", (error) => {
     console.error(`[${name}] failed to start: ${error.message}`);
+    if (!oneShot) shutdown(1);
   });
   child.on("exit", (code) => {
-    if (!stopping && code !== 0) {
+    if (stopping) return;
+    if (oneShot) {
+      if (code === 0) console.log(`[${name}] completed.`);
+      else console.error(`[${name}] failed with code ${code}; the app remains running.`);
+    } else {
       console.error(`[${name}] stopped unexpectedly with code ${code}.`);
-      shutdown(1);
+      shutdown(code || 1);
     }
   });
+  children.push(child);
   return child;
-});
+}
+
+for (const processDefinition of processes) startProcess(processDefinition);
+void syncGarminAfterBackendStarts();
 
 function shutdown(code = 0) {
   if (stopping) return;
@@ -49,7 +60,36 @@ function shutdown(code = 0) {
 process.on("SIGINT", () => shutdown());
 process.on("SIGTERM", () => shutdown());
 
-console.log("GTW demo running: frontend, backend, and continuous Garmin pulse monitor.");
+console.log(
+  "GTW demo running: frontend, backend, continuous Garmin pulse, and one startup cloud sync.",
+);
+
+async function syncGarminAfterBackendStarts() {
+  const backendUrl = (sharedEnv.BACKEND_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+  for (let attempt = 1; attempt <= 30 && !stopping; attempt += 1) {
+    try {
+      const response = await fetch(`${backendUrl}/health`, { signal: AbortSignal.timeout(1_000) });
+      if (response.ok) {
+        console.log("Backend ready. Starting one Garmin Cloud sync...");
+        startProcess(
+          {
+            name: "garmin-sync",
+            cwd: path.join(root, "backend"),
+            args: ["run", "garmin:sync"],
+          },
+          true,
+        );
+        return;
+      }
+    } catch {
+      // Backend is still starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  if (!stopping) {
+    console.error("Backend did not become ready; startup Garmin sync was skipped.");
+  }
+}
 
 function readEnvFile(file) {
   try {
